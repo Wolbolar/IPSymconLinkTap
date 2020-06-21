@@ -3,17 +3,35 @@
     "de": {
       "This device can only created by the LinkTap configurator, please use the LinkTap configurator for creating LinkTap devices.": "Das Gerät kann nur durch ein LinkTap Konfigurator angelegt werden, bitte den LinkTap Konfigurator benutzten um die LinkTap Geräte Instanz zu erzeugen.",
       "name": "Name",
-      "Read Information": "Information auslesen"
+      "Read Information": "Information auslesen",
+      "Interval Mode": "Interval Modus",
+      "Odd-Even Mode": "Gerade-Ungrade Modus",
+      "Seven Day Mode": "Sieben Tages Modus",
+      "Month Mode": "Monats Modus",
+      "irrigation status": "Bewässerungsstatus",
+      "irrigation time": "Bewässerungszeit"
     },
     "de_AT": {
       "This device can only created by the LinkTap configurator, please use the LinkTap configurator for creating LinkTap devices.": "Das Gerät kann nur durch ein LinkTap Konfigurator angelegt werden, bitte den LinkTap Konfigurator benutzten um die LinkTap Geräte Instanz zu erzeugen.",
       "name": "Name",
-      "Read Information": "Information auslesen"
+      "Read Information": "Information auslesen",
+      "Interval Mode": "Interval Modus",
+      "Odd-Even Mode": "Gerade-Ungrade Modus",
+      "Seven Day Mode": "Sieben Tages Modus",
+      "Month Mode": "Monats Modus",
+      "irrigation status": "Bewässerungsstatus",
+      "irrigation time": "Bewässerungszeit"
     },
     "de_CH": {
       "This device can only created by the LinkTap configurator, please use the LinkTap configurator for creating LinkTap devices.": "Das Gerät kann nur durch ein LinkTap Konfigurator angelegt werden, bitte den LinkTap Konfigurator benutzten um die LinkTap Geräte Instanz zu erzeugen.",
       "name": "Name",
-      "Read Information": "Information auslesen"
+      "Read Information": "Information auslesen",
+      "Interval Mode": "Interval Modus",
+      "Odd-Even Mode": "Gerade-Ungrade Modus",
+      "Seven Day Mode": "Sieben Tages Modus",
+      "Month Mode": "Monats Modus",
+      "irrigation status": "Bewässerungsstatus",
+      "irrigation time": "Bewässerungszeit"
     }
   }
 }

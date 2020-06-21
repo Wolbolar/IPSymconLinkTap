@@ -27,7 +27,7 @@ class LinkTap extends IPSModule
         $this->RegisterAttributeBoolean('irrigation_state', false);
         $this->RegisterAttributeInteger('irrigation_time', 10);
         $this->RegisterAttributeInteger('irrigation_mode', 0);
-        
+
         $this->RegisterAttributeInteger('delay_command', 0);
 
         $this->RegisterAttributeInteger('last_command_timestamp', 0);
