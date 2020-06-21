@@ -1,0 +1,12 @@
+{
+    "id": "{EC479D72-44DB-B545-192D-AC4D02004BBF}",
+    "author": "Fonzo",
+    "name": "LinkTap",
+    "url": "https://github.com/Wolbolar/IPSymconLinkTap",
+    "compatibility": {
+        "version": "5.0"
+    },
+    "version": "0.1",
+    "build": 1,
+    "date": 0
+}

@@ -1,0 +1,25 @@
+{
+  "translations": {
+    "de": {
+      "Register": "Registrieren",
+      "Gardena: Please register with your Gardena account!": "Bitte mit dem Gardena Benutzerkonto registrieren!",
+      "Status: Symcon Connect is OK!": "Status: Symcon Connect ist OK!",
+      "Error: Symcon Connect is not active!": "Error: Symcon Connect is nicht aktiv!",
+      "category for Gardena devices": "Kategorie für Gardena Geräte",
+      "category Gardena devices": "Kategorie Gardena Geräte",
+      "name": "Name",
+      "serial": "Seriennummer",
+      "rf link state": "RF Link Status",
+      "model type": "Modell Typ",
+      "Read Gardena configuration:": "Gardena Konfiguration auslesen:",
+      "Read configuration": "Konfiguration auslesen",
+      "Creating instance.": "Die Instanz wird erstellt.",
+      "interface closed.": "Verbindung geschlossen.",
+      "Please follow the instructions.": "Bitte der Anleitung folgen",
+      "no category selected.": "Keine Kategorie ausgewählt",
+      "choose category for import.": "Kategorie zum Import auswählen.",
+      "configuration valid.": "Konfigurator ist ok."
+    }
+  }
+}
+

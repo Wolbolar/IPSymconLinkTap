@@ -1,0 +1,37 @@
+{
+  "translations": {
+    "de": {
+      "serial number: ": "Seriennummer: ",
+      "type: ": "Typ: ",
+      "Update interval in seconds:": "Aktualisierungsinterval in Sekunden",
+      "seconds": "Sekunden",
+      "name": "Name",
+      "serial number": "Seriennummer",
+      "irrigation status": "Bewässerungsstatus",
+      "irrigation time": "Bewässerungszeit",
+      "irrigation mode": "Bewässerungsmodus"
+    },
+    "de_AT": {
+      "serial number: ": "Seriennummer: ",
+      "type: ": "Typ: ",
+      "Update interval in seconds:": "Aktualisierungsinterval in Sekunden",
+      "seconds": "Sekunden",
+      "name": "Name",
+      "serial number": "Seriennummer",
+      "irrigation status": "Bewässerungsstatus",
+      "irrigation time": "Bewässerungszeit",
+      "irrigation mode": "Bewässerungsmodus"
+    },
+    "de_CH": {
+      "serial number: ": "Seriennummer: ",
+      "type: ": "Typ: ",
+      "Update interval in seconds:": "Aktualisierungsinterval in Sekunden",
+      "seconds": "Sekunden",
+      "name": "Name",
+      "serial number": "Seriennummer",
+      "irrigation status": "Bewässerungsstatus",
+      "irrigation time": "Bewässerungszeit",
+      "irrigation mode": "Bewässerungsmodus"
+    }
+  }
+}

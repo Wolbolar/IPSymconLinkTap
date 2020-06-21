@@ -1,0 +1,18 @@
+{
+    "id": "{F3E543DF-E914-748B-EB0B-E3348AF969B6}",
+    "name": "LinkTap IO",
+    "type": 1,
+    "vendor": "LinkTap",
+    "aliases": [
+        "LinkTap IO"
+    ],
+    "parentRequirements": [],
+    "childRequirements": [
+        "{F1F4C680-F5E4-F0E0-670D-0574FF253233}"
+    ],
+    "implemented": [
+        "{CEEFEF59-8DCC-17F6-BDA4-D5DDBEFF1E22}", "{D0BBCD71-0CF2-3829-FB72-FAAEDA73EA6F}"
+    ],
+    "prefix": "LINKTAP",
+    "url": "https://github.com/Wolbolar/IPSymconLinkTap"
+}
