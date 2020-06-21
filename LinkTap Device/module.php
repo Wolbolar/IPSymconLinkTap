@@ -20,6 +20,7 @@ class LinkTap extends IPSModule
         $this->ConnectParent('{F3E543DF-E914-748B-EB0B-E3348AF969B6}');
         $this->RegisterPropertyString('gatewayId', ''); // String type. Your LinkTap Gateway's first 16-digits/letters ID, case insensitive, no dash symbol, e,g, 3F7A23FE004B1200
         $this->RegisterPropertyString('taplinkerId', ''); // String type. Your LinkTap Taplinker's first 16-digits/letters ID, case insensitive, no dash symbol, e,g, 67ABCDEF004B1200
+        $this->RegisterPropertyString('name', '');
         $this->RegisterPropertyInteger('type', 2);
         $this->RegisterAttributeString('name', '');
         $this->RegisterAttributeBoolean('name_enabled', false);
@@ -57,7 +58,7 @@ class LinkTap extends IPSModule
         $this->RegisterAttributeInteger('ecoOn', 0);
         $this->RegisterAttributeBoolean('ecoOn_enabled', false);
         $this->RegisterAttributeBoolean('eco', false);
-        $this->RegisterAttributeBoolean('ecoOn_enabled', false);
+        $this->RegisterAttributeBoolean('eco_enabled', false);
         // current watering plan. 'H' represents hour, 'M' represents minute, 'D' represents duration.
         $this->RegisterAttributeInteger('H', 0);
         $this->RegisterAttributeBoolean('H_enabled', false);
@@ -136,10 +137,10 @@ class LinkTap extends IPSModule
 
     private function ValidateConfiguration()
     {
-        $username = $this->ReadPropertyString('username');
-        if ($username == '') {
+        $taplinkerId = $this->ReadPropertyString('taplinkerId');
+        if ($taplinkerId == '') {
             $this->SetStatus(205);
-        } elseif ($username != '') {
+        } elseif ($taplinkerId != '') {
             $this->RegisterVariables();
             $this->SetStatus(IS_ACTIVE);
         }
@@ -151,18 +152,18 @@ class LinkTap extends IPSModule
     private function RegisterVariables(): void
     {
 
-        /*
+
         $this->SetupVariable(
             'name', $this->Translate('name'), '', $this->_getPosition(), VARIABLETYPE_STRING, false, false
         );
-        */
+
 
         $this->SetupVariable(
-            'irrigation_state', $this->Translate('irrigation status'), '~Switch', $this->_getPosition(), VARIABLETYPE_BOOLEAN, false, false
+            'irrigation_state', $this->Translate('irrigation status'), '~Switch', $this->_getPosition(), VARIABLETYPE_BOOLEAN, true, true
         );
         $this->RegisterProfile('LinkTap.IrrigationTime', 'Clock', '', ' min', 0, 1439, 1, 0, VARIABLETYPE_INTEGER);
         $this->SetupVariable(
-            'irrigation_time', $this->Translate('irrigation time'), 'LinkTap.IrrigationTime', $this->_getPosition(), VARIABLETYPE_INTEGER, false, false
+            'irrigation_time', $this->Translate('irrigation time'), 'LinkTap.IrrigationTime', $this->_getPosition(), VARIABLETYPE_INTEGER, true, true
         );
 
         $mode_ass = [
@@ -173,7 +174,7 @@ class LinkTap extends IPSModule
         $this->RegisterProfileAssociation('LinkTap.IrrigationMode', 'Drops', '', '', 0, 3, 1, 0, VARIABLETYPE_INTEGER, $mode_ass);
 
         $this->SetupVariable(
-            'irrigation_mode', $this->Translate('irrigation mode'), 'LinkTap.IrrigationMode', $this->_getPosition(), VARIABLETYPE_INTEGER, false, false
+            'irrigation_mode', $this->Translate('irrigation mode'), 'LinkTap.IrrigationMode', $this->_getPosition(), VARIABLETYPE_INTEGER, true, true
         );
 
         // $this->GetDeviceStatus();
@@ -218,7 +219,7 @@ class LinkTap extends IPSModule
                     break;
                 case VARIABLETYPE_STRING:
                     $objid = $this->RegisterVariableString($ident, $name, $profile, $position);
-                    if ($ident == 'name') {
+                    if ($ident == 'taplinkerId') {
                         $value = $this->ReadPropertyString($ident);
                     } else {
                         $value = $this->ReadAttributeString($ident);
@@ -401,23 +402,30 @@ class LinkTap extends IPSModule
         {
             $status = $payload->status;
             $this->SendDebug('LinkTap Response Status', $status, 0);
-            if($ident == 'irrigation_state')
+            if($ident == 'get_all_devices')
             {
-                if(empty($value))
-                {
-                    $value = false;
-                }
-                $this->WriteAttributeBoolean($ident, $value);
+                $this->SendDebug('LinkTap Get Devices', $status, 0);
             }
-            if($ident == 'irrigation_mode')
+            else
             {
-                if(empty($value))
+                if($ident == 'irrigation_state')
                 {
-                    $value = 0;
+                    if(empty($value))
+                    {
+                        $value = false;
+                    }
+                    $this->WriteAttributeBoolean($ident, $value);
                 }
-                $this->WriteAttributeBoolean($ident, $value);
+                if($ident == 'irrigation_mode')
+                {
+                    if(empty($value))
+                    {
+                        $value = 0;
+                    }
+                    $this->WriteAttributeBoolean($ident, $value);
+                }
+                $this->SetValue($ident, $value);
             }
-            $this->SetValue($ident, $value);
         }
         elseif($result == 'error')
         {
@@ -539,8 +547,9 @@ class LinkTap extends IPSModule
             'username' => '{USERNAME}',
             'apiKey' => '{APIKEY}'
         ]);
-        $response = $this->SendCommand('Get_All_Devices', $data);
-        return $response;
+        $payload = $this->SendCommand('Get_All_Devices', $data);
+        return $this->CheckResponse('get_all_devices', $payload, true);
+
 
         /*
          * Explanation of some fields:
@@ -613,19 +622,8 @@ vel: current flow rate (unit: ml per minute. For G2 only).
      */
     protected function FormHead()
     {
-        /*
-
-         $data = $this->CheckRequest();
-        $serial_number = $this->ReadAttributeString('serial_number');
-        if ($serial_number == '') {
-            $visibility_serial = false;
-        } else {
-            $visibility_serial = true;
-        }
-*/
-
-        $data = true;
-        if ($data != false) {
+        $taplinkerId = $this->ReadPropertyString('taplinkerId');;
+        if ($taplinkerId == '') {
             $form = [
                 [
                     'type' => 'RowLayout',
@@ -638,38 +636,7 @@ vel: current flow rate (unit: ml per minute. For G2 only).
                         [
                             'type' => 'Label',
                             'caption' => $this->ReadAttributeString('name')
-                        ],]],
-                [
-                    'type' => 'Label',
-                    'visible' => true,
-                    'caption' => $this->Translate('name: ') . $this->ReadAttributeString('name')
-                ],
-                [
-                    'name' => 'username',
-                    'type' => 'ValidationTextBox',
-                    'visible' => true,
-                    'caption' => $this->Translate('user name')
-                ],
-                [
-                    'name' => 'apiKey',
-                    'type' => 'ValidationTextBox',
-                    'visible' => true,
-                    'caption' => $this->Translate('API key')
-                ],
-                [
-                    'name' => 'gatewayId',
-                    'type' => 'ValidationTextBox',
-                    'visible' => true,
-                    'caption' => $this->Translate('gateway id')
-                ],
-                [
-                    'name' => 'taplinkerId',
-                    'type' => 'ValidationTextBox',
-                    'visible' => true,
-                    'caption' => $this->Translate('taplinker id')
-                ],
-
-
+                        ],]]
             ];
         } else {
             $form = [
@@ -680,18 +647,6 @@ vel: current flow rate (unit: ml per minute. For G2 only).
             ];
         }
         return $form;
-    }
-
-    private function CheckRequest()
-    {
-        $id = $this->ReadPropertyString('id');
-        $data = false;
-        if ($id == '') {
-            $this->SetStatus(205);
-        } elseif ($id != '') {
-            $data = $this->RequestStatus('GetUserInformation');
-        }
-        return $data;
     }
 
     /**

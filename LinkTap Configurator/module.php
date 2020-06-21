@@ -33,17 +33,19 @@ class LinkTapConfigurator extends IPSModule
 
     public function GetLinkTapAPIKey()
     {
-        $token = $this->RequestDataFromParent('apikey');
-        return $token;
+        $data = json_encode([
+            'username' => '{USERNAME}'
+        ]);
+        $payload = $this->RequestDataFromParent('apikey', $data);
+        return $this->CheckResponse('api_key', $payload);
     }
 
 
     public function GetConfiguration()
     {
-        $data = $this->RequestDataFromParent('Get_All_Devices');
-        if($data != '[]')
+        $devices = json_decode($this->Get_Devices());
+        if(!empty($devices))
         {
-            $devices = $data->devices;
             $this->WriteAttributeString('linktap_devices', json_encode($devices));
             foreach($devices as $device)
             {
@@ -68,16 +70,67 @@ class LinkTapConfigurator extends IPSModule
         }
     }
 
-    public function RequestDataFromParent(string $endpoint)
+    /** Get All Devices
+     * @param  (string $gatewayId)
+     * @return string
+     */
+    protected function Get_Devices()
+    {
+        $data = json_encode([
+            'username' => '{USERNAME}',
+            'apiKey' => '{APIKEY}'
+        ]);
+        $payload = $this->RequestDataFromParent('Get_All_Devices', $data);
+        return $this->CheckResponse('get_all_devices', $payload);
+
+        /*
+         * Explanation of some fields:
+workMode: currently activated work mode. ‘O’ is for Odd-Even Mode, ‘M’ is for Instant Mode, ‘I’ is for Interval Mode, ‘T’ is for 7-Day Mode, ‘Y’ is for Month Mode, ‘N’ means no work mode assigned.
+slot: current watering plan. 'H' represents hour, 'M' represents minute, 'D' represents duration.
+vel: latest flow rate (unit: ml per minute. For G2 only).
+fall: fall incident flag (boolean. For G2 only).
+valveBroken: valve failed to open flag (boolean. For G2 only).
+noWater: water cut-off flag (boolean. For G2 only).
+         */
+    }
+
+    protected function RequestDataFromParent(string $endpoint, string $data)
     {
         $data = $this->SendDataToParent(json_encode([
-            'DataID'   => '{3F1DBEA8-38D6-12F4-A487-AF43F6326060}',
-            'Type' => 'GET',
+            'DataID' => '{D0BBCD71-0CF2-3829-FB72-FAAEDA73EA6F}',
+            'Type' => 'POST',
             'Endpoint' => $endpoint,
-            'Payload'  => ''
+            'Payload' => $data
         ]));
         $this->SendDebug('LinkTap Request Response', $endpoint . ": " . $data, 0);
         return $data;
+    }
+
+    private function CheckResponse($ident, $payload)
+    {
+        $status = '[]';
+        $data = json_decode($payload);
+        $result = $data->result;
+        $this->SendDebug('LinkTap Response Result', $result, 0);
+        if($result == 'ok')
+        {
+            if($ident == 'get_all_devices')
+            {
+                $status = json_encode($data->devices);
+                $this->SendDebug('LinkTap Get Devices', $status, 0);
+            }
+            else
+            {
+                $status = $data->apikey;
+                $this->SendDebug('LinkTap API Key', $status, 0);
+            }
+        }
+        elseif($result == 'error')
+        {
+            $status = $data->message;
+            $this->SendDebug('LinkTap Error', $status, 0);
+        }
+        return $status;
     }
 
     /**
@@ -88,12 +141,10 @@ class LinkTapConfigurator extends IPSModule
     private function Get_ListConfiguration()
     {
         $config_list = [];
-        $data = $this->RequestDataFromParent('Get_All_Devices');
-        if ($data != '[]') {
+        $devices = json_decode($this->Get_Devices());
+        if (!empty($devices)) {
             $LinkTapInstanceIDList = IPS_GetInstanceListByModuleID('{A3CE72F6-0C41-4B7D-3A3A-05E1C6E94CDE}'); // LinkTap Devices
-            $this->SendDebug('LinkTap Config', $data, 0);
-            $payload = $data->devices;
-            $devices = json_decode($payload, true);
+            $this->SendDebug('LinkTap Config', json_encode($devices), 0);
             $counter = count($devices);
             if ($counter > 0) {
                 foreach ($devices as $device) {
@@ -123,7 +174,6 @@ class LinkTapConfigurator extends IPSModule
                                 [
                                     "moduleID" => "{A3CE72F6-0C41-4B7D-3A3A-05E1C6E94CDE}",
                                     "configuration" => [
-                                        "name" => $taplinkerName,
                                         "taplinkerId" => $taplinkerId,
                                         "gatewayId" => $gatewayId,
                                     ],
@@ -184,8 +234,8 @@ class LinkTapConfigurator extends IPSModule
      */
     protected function FormHead()
     {
-        $devices = $this->RequestDataFromParent('Get_All_Devices');
-        if ($devices == '[]') {
+        $devices = json_decode($this->Get_Devices());
+        if (empty($devices)) {
             $show_config = false;
         } else {
             $show_config = true;
@@ -194,7 +244,7 @@ class LinkTapConfigurator extends IPSModule
         //Check LinkTap connection
         $apikey = $this->GetLinkTapAPIKey();
         if ($apikey == '') {
-            $this->SendDebug('Token', $apikey, 0);
+            $this->SendDebug('API Key', $apikey, 0);
             $visibility_register = true;
         }
 
@@ -266,7 +316,7 @@ class LinkTapConfigurator extends IPSModule
         //Check LinkTap connection
         $apikey = $this->GetLinkTapAPIKey();
         if ($apikey == '') {
-            $this->SendDebug('Token', $apikey, 0);
+            $this->SendDebug('API Key', $apikey, 0);
             $visibility_config = true;
         }
         $form = [

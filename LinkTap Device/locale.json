@@ -1,37 +1,19 @@
 {
   "translations": {
     "de": {
-      "serial number: ": "Seriennummer: ",
-      "type: ": "Typ: ",
-      "Update interval in seconds:": "Aktualisierungsinterval in Sekunden",
-      "seconds": "Sekunden",
+      "This device can only created by the LinkTap configurator, please use the LinkTap configurator for creating LinkTap devices.": "Das Gerät kann nur durch ein LinkTap Konfigurator angelegt werden, bitte den LinkTap Konfigurator benutzten um die LinkTap Geräte Instanz zu erzeugen.",
       "name": "Name",
-      "serial number": "Seriennummer",
-      "irrigation status": "Bewässerungsstatus",
-      "irrigation time": "Bewässerungszeit",
-      "irrigation mode": "Bewässerungsmodus"
+      "Read Information": "Information auslesen"
     },
     "de_AT": {
-      "serial number: ": "Seriennummer: ",
-      "type: ": "Typ: ",
-      "Update interval in seconds:": "Aktualisierungsinterval in Sekunden",
-      "seconds": "Sekunden",
+      "This device can only created by the LinkTap configurator, please use the LinkTap configurator for creating LinkTap devices.": "Das Gerät kann nur durch ein LinkTap Konfigurator angelegt werden, bitte den LinkTap Konfigurator benutzten um die LinkTap Geräte Instanz zu erzeugen.",
       "name": "Name",
-      "serial number": "Seriennummer",
-      "irrigation status": "Bewässerungsstatus",
-      "irrigation time": "Bewässerungszeit",
-      "irrigation mode": "Bewässerungsmodus"
+      "Read Information": "Information auslesen"
     },
     "de_CH": {
-      "serial number: ": "Seriennummer: ",
-      "type: ": "Typ: ",
-      "Update interval in seconds:": "Aktualisierungsinterval in Sekunden",
-      "seconds": "Sekunden",
+      "This device can only created by the LinkTap configurator, please use the LinkTap configurator for creating LinkTap devices.": "Das Gerät kann nur durch ein LinkTap Konfigurator angelegt werden, bitte den LinkTap Konfigurator benutzten um die LinkTap Geräte Instanz zu erzeugen.",
       "name": "Name",
-      "serial number": "Seriennummer",
-      "irrigation status": "Bewässerungsstatus",
-      "irrigation time": "Bewässerungszeit",
-      "irrigation mode": "Bewässerungsmodus"
+      "Read Information": "Information auslesen"
     }
   }
 }
