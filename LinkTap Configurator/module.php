@@ -36,8 +36,7 @@ class LinkTapConfigurator extends IPSModule
         $data = json_encode([
             'username' => '{USERNAME}'
         ]);
-        $payload = $this->RequestDataFromParent('apikey', $data);
-        return $this->CheckResponse('api_key', $payload);
+        return $this->RequestDataFromParent('apikey', $data);
     }
 
 
@@ -74,24 +73,26 @@ class LinkTapConfigurator extends IPSModule
      * @param  (string $gatewayId)
      * @return string
      */
+    protected function Get_Devices_Buffer()
+    {
+        $data = json_encode([
+            'username' => '{USERNAME}',
+            'apiKey' => '{APIKEY}'
+        ]);
+        return $this->RequestDataFromParent('Get_All_Devices_Buffer', $data);
+    }
+
+    /** Get All Devices
+     * @param  (string $gatewayId)
+     * @return string
+     */
     protected function Get_Devices()
     {
         $data = json_encode([
             'username' => '{USERNAME}',
             'apiKey' => '{APIKEY}'
         ]);
-        $payload = $this->RequestDataFromParent('Get_All_Devices', $data);
-        return $this->CheckResponse('get_all_devices', $payload);
-
-        /*
-         * Explanation of some fields:
-workMode: currently activated work mode. ‘O’ is for Odd-Even Mode, ‘M’ is for Instant Mode, ‘I’ is for Interval Mode, ‘T’ is for 7-Day Mode, ‘Y’ is for Month Mode, ‘N’ means no work mode assigned.
-slot: current watering plan. 'H' represents hour, 'M' represents minute, 'D' represents duration.
-vel: latest flow rate (unit: ml per minute. For G2 only).
-fall: fall incident flag (boolean. For G2 only).
-valveBroken: valve failed to open flag (boolean. For G2 only).
-noWater: water cut-off flag (boolean. For G2 only).
-         */
+        return $this->RequestDataFromParent('Get_All_Devices', $data);
     }
 
     protected function RequestDataFromParent(string $endpoint, string $data)
@@ -106,33 +107,6 @@ noWater: water cut-off flag (boolean. For G2 only).
         return $data;
     }
 
-    private function CheckResponse($ident, $payload)
-    {
-        $status = '[]';
-        $data = json_decode($payload);
-        $result = $data->result;
-        $this->SendDebug('LinkTap Response Result', $result, 0);
-        if($result == 'ok')
-        {
-            if($ident == 'get_all_devices')
-            {
-                $status = json_encode($data->devices);
-                $this->SendDebug('LinkTap Get Devices', $status, 0);
-            }
-            else
-            {
-                $status = $data->apikey;
-                $this->SendDebug('LinkTap API Key', $status, 0);
-            }
-        }
-        elseif($result == 'error')
-        {
-            $status = $data->message;
-            $this->SendDebug('LinkTap Error', $status, 0);
-        }
-        return $status;
-    }
-
     /**
      * Liefert alle Geräte.
      *
@@ -141,20 +115,20 @@ noWater: water cut-off flag (boolean. For G2 only).
     private function Get_ListConfiguration()
     {
         $config_list = [];
-        $devices = json_decode($this->Get_Devices());
+        $devices = json_decode($this->Get_Devices_Buffer());
         if (!empty($devices)) {
             $LinkTapInstanceIDList = IPS_GetInstanceListByModuleID('{A3CE72F6-0C41-4B7D-3A3A-05E1C6E94CDE}'); // LinkTap Devices
             $this->SendDebug('LinkTap Config', json_encode($devices), 0);
             $counter = count($devices);
             if ($counter > 0) {
                 foreach ($devices as $device) {
-                    $instanceID = 0;
                     $gatewayId = $device->gatewayId;
                     $this->SendDebug('LinkTap Gateway ID', $gatewayId, 0);
                     $taplinker = $device->taplinker;
                     $this->SendDebug('LinkTap TapLinker', json_encode($taplinker), 0);
                     foreach($taplinker as $taplink)
                     {
+                        $instanceID = 0;
                         $taplinkerName = $taplink->taplinkerName;
                         $this->SendDebug('LinkTap taplinker Name', $taplinkerName, 0);
                         $taplinkerId = $taplink->taplinkerId;
@@ -162,7 +136,8 @@ noWater: water cut-off flag (boolean. For G2 only).
                         $version = $taplink->version;
                         $this->SendDebug('LinkTap version', $version, 0);
                         foreach ($LinkTapInstanceIDList as $LinkTapInstanceID) {
-                            if (IPS_GetProperty($LinkTapInstanceID, 'taplinkerId') == $taplinkerId) { // todo  InstanceInterface is not available
+                            if (IPS_GetProperty($LinkTapInstanceID, 'taplinkerId') == $taplinkerId) {
+                                $this->SendDebug('LinkTap Device exist', 'Instance ID: ' . $LinkTapInstanceID . ', TapLinker ID:' . $taplinkerId, 0);
                                 $instanceID = $LinkTapInstanceID;
                             }
                         }
@@ -234,7 +209,7 @@ noWater: water cut-off flag (boolean. For G2 only).
      */
     protected function FormHead()
     {
-        $devices = json_decode($this->Get_Devices());
+        $devices = json_decode($this->Get_Devices_Buffer());
         if (empty($devices)) {
             $show_config = false;
         } else {

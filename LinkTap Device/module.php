@@ -261,8 +261,8 @@ class LinkTap extends IPSModule
         $this->WriteEnabledValue('irrigation_state', VARIABLETYPE_BOOLEAN, true);
         $this->WriteEnabledValue('irrigation_time', VARIABLETYPE_INTEGER, true);
         $this->WriteEnabledValue('irrigation_mode', VARIABLETYPE_INTEGER, true);
-        // $this->WriteEnabledValue('battery', VARIABLETYPE_INTEGER);
-        // $this->WriteEnabledValue('rssi', VARIABLETYPE_INTEGER);
+        // $this->WriteEnabledValue('batteryStatus', VARIABLETYPE_INTEGER);
+        // $this->WriteEnabledValue('signal', VARIABLETYPE_INTEGER);
     }
 
     // LinkTap API
@@ -397,16 +397,92 @@ class LinkTap extends IPSModule
 
     private function CheckResponse($ident, $payload, $value = NULL)
     {
-        $status = '[]';
-        $result = $payload->result;
-        $this->SendDebug('LinkTap Response Result', $result, 0);
-        if($result == 'ok')
+        if($payload != '[]')
         {
-            $status = $payload->status;
-            $this->SendDebug('LinkTap Response Status', $status, 0);
+            $this->SendDebug('LinkTap Response', $payload, 0);
             if($ident == 'get_all_devices')
             {
-                $this->SendDebug('LinkTap Get Devices', $status, 0);
+                $devices = json_decode($payload);
+
+                foreach($devices as $device)
+                {
+                    // var_dump($device);
+
+                    $name = $device->name;
+                    $this->SendDebug('LinkTap Device Name', $name, 0);
+                    $location = $device->location;
+                    $this->SendDebug('LinkTap Device Location', $location, 0);
+                    $gatewayId = $device->gatewayId;
+                    $this->SendDebug('LinkTap Device Gateway ID', $gatewayId, 0);
+                    $status = $device->status;
+                    $this->SendDebug('LinkTap Device Status', $status, 0);
+                    $version = $device->version;
+                    $this->SendDebug('LinkTap Device Version', $version, 0);
+                    $taplinker = $device->taplinker;
+                    foreach($taplinker as $taplink)
+                    {
+                        $taplinkerId = $taplink->taplinkerId;
+                        if($this->ReadPropertyString('taplinkerId') == $taplinkerId)
+                        {
+                            $taplinkerName = $taplink->taplinkerName;
+                            $this->WriteAttributeString('taplinkerName', $taplinkerName);
+                            $status = $taplink->status;
+                            $this->WriteAttributeString('status', $status);
+                            $location = $taplink->location;
+                            $this->WriteAttributeString('location', $location);
+                            $version = $taplink->version;
+                            $this->WriteAttributeString('version', $version);
+
+                            /*
+                             * Explanation of some fields:
+                    workMode: currently activated work mode. ‘O’ is for Odd-Even Mode, ‘M’ is for Instant Mode, ‘I’ is for Interval Mode, ‘T’ is for 7-Day Mode, ‘Y’ is for Month Mode, ‘N’ means no work mode assigned.
+                    slot: current watering plan. 'H' represents hour, 'M' represents minute, 'D' represents duration.
+                    vel: latest flow rate (unit: ml per minute. For G2 only).
+                    fall: fall incident flag (boolean. For G2 only).
+                    valveBroken: valve failed to open flag (boolean. For G2 only).
+                    noWater: water cut-off flag (boolean. For G2 only).
+                             */
+
+                            /*
+
+'signal' => '32%',
+'batteryStatus' => '100%',
+'workMode' => 'I',
+'plan' =>
+(object) array(
+'interval' => 1,
+'Y' => 2020,
+'X' => 6,
+'Z' => 18,
+'ecoOff' => 1,
+'ecoOn' => 1,
+'eco' => false,
+'slot' =>
+array (
+0 =>
+(object) array(
+'H' => 7,
+'M' => 0,
+'D' => 840,
+),
+),
+),
+'watering' => NULL,
+'vel' => 0,
+'fall' => false,
+'valveBroken' => false,
+'noWater' => false,
+),
+                             */
+                        }
+                    }
+
+
+                }
+
+
+                $this->SendDebug('LinkTap Get Devices', $payload, 0);
+                // todo write values
             }
             else
             {
@@ -424,17 +500,12 @@ class LinkTap extends IPSModule
                     {
                         $value = 0;
                     }
-                    $this->WriteAttributeBoolean($ident, $value);
+                    $this->WriteAttributeInteger($ident, $value);
                 }
                 $this->SetValue($ident, $value);
             }
         }
-        elseif($result == 'error')
-        {
-            $status = $payload->message;
-            $this->SendDebug('LinkTap Error', $status, 0);
-        }
-        return $status;
+        return $payload;
     }
 
     // LinkTap API
@@ -458,7 +529,8 @@ class LinkTap extends IPSModule
             'ecoOff' => 2
         ]);
         $payload = $this->SendCommand('Watering_On', $data);
-        return $this->CheckResponse('irrigation_state', $payload, true);
+        $this->CheckResponse('irrigation_state', $payload, true);
+        return $payload;
     }
 
     /** Watering Off
@@ -551,17 +623,6 @@ class LinkTap extends IPSModule
         ]);
         $payload = $this->SendCommand('Get_All_Devices', $data);
         return $this->CheckResponse('get_all_devices', $payload, true);
-
-
-        /*
-         * Explanation of some fields:
-workMode: currently activated work mode. ‘O’ is for Odd-Even Mode, ‘M’ is for Instant Mode, ‘I’ is for Interval Mode, ‘T’ is for 7-Day Mode, ‘Y’ is for Month Mode, ‘N’ means no work mode assigned.
-slot: current watering plan. 'H' represents hour, 'M' represents minute, 'D' represents duration.
-vel: latest flow rate (unit: ml per minute. For G2 only).
-fall: fall incident flag (boolean. For G2 only).
-valveBroken: valve failed to open flag (boolean. For G2 only).
-noWater: water cut-off flag (boolean. For G2 only).
-         */
     }
 
     /** Watering Status of a single Taplinker
