@@ -33,6 +33,7 @@ class LinkTapIO extends IPSModule
         $this->RegisterAttributeInteger("last_get_devices_timestamp", 0);
         $this->RegisterAttributeInteger("last_command_timestamp", 0);
         $this->RegisterAttributeString('watering_status', '[]');
+        $this->RegisterAttributeInteger('delay_command', 0);
 
         //we will wait until the kernel is ready
         $this->RegisterMessage(0, IPS_KERNELMESSAGE);
@@ -193,7 +194,7 @@ class LinkTapIO extends IPSModule
     {
         $simulation = $this->ReadAttributeBoolean('simulation');
         if ($simulation) {
-            $http_code = 'X 200';
+            $http_code = 200;
             $body = $response;
         } else {
             $HeaderSize = $info['header_size'];
@@ -215,10 +216,17 @@ class LinkTapIO extends IPSModule
             if (isset($response['message'])) {
                 $linktap_response = $response['message'];
             } elseif (isset($response['status'])) {
-                $linktap_response = json_encode($response['status']);
+
                 if($result == 'ok')
                 {
-                    $this->WriteAttributeString('watering_status', json_encode($response['status']));
+                    if(empty($response['status']))
+                    {
+                        $linktap_response = $this->ReadAttributeString('watering_status');
+                    }
+                    else{
+                        $linktap_response = json_encode($response['status']);
+                        $this->WriteAttributeString('watering_status', json_encode($response['status']));
+                    }
                 }
             } elseif (isset($response['devices'])) {
                 $linktap_response = json_encode($response['devices']);
@@ -226,6 +234,9 @@ class LinkTapIO extends IPSModule
                 {
                     $this->WriteAttributeString('devices', json_encode($response['devices']));
                 }
+            }
+            else{
+                $linktap_response = '[]';
             }
         } else {
             $this->SendDebug('HTTP Response Header', $http_code . ' Response Body: ' . $body, 0);

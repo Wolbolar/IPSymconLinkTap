@@ -11,7 +11,13 @@
       "irrigation status": "Bewässerungsstatus",
       "irrigation time": "Bewässerungszeit",
       "irrigation mode": "Bewässerungsmodus",
-      "LinkTap device created.": "LinkTap Gerät erstellt."
+      "LinkTap device created.": "LinkTap Gerät erstellt.",
+      "location": "Ort",
+      "status": "Status",
+      "version": "Version",
+      "Taplinker name": "Taplinker Name",
+      "signal": "Empfangsstärke",
+      "battery status": "Batterie Status"
     },
     "de_AT": {
       "This device can only created by the LinkTap configurator, please use the LinkTap configurator for creating LinkTap devices.": "Das Gerät kann nur durch ein LinkTap Konfigurator angelegt werden, bitte den LinkTap Konfigurator benutzten um die LinkTap Geräte Instanz zu erzeugen.",
@@ -24,7 +30,13 @@
       "irrigation status": "Bewässerungsstatus",
       "irrigation time": "Bewässerungszeit",
       "irrigation mode": "Bewässerungsmodus",
-      "LinkTap device created.": "LinkTap Gerät erstellt."
+      "LinkTap device created.": "LinkTap Gerät erstellt.",
+      "location": "Ort",
+      "status": "Status",
+      "version": "Version",
+      "Taplinker name": "Taplinker Name",
+      "signal": "Empfangsstärke",
+      "battery status": "Batterie Status"
     },
     "de_CH": {
       "This device can only created by the LinkTap configurator, please use the LinkTap configurator for creating LinkTap devices.": "Das Gerät kann nur durch ein LinkTap Konfigurator angelegt werden, bitte den LinkTap Konfigurator benutzten um die LinkTap Geräte Instanz zu erzeugen.",
@@ -37,7 +49,13 @@
       "irrigation status": "Bewässerungsstatus",
       "irrigation time": "Bewässerungszeit",
       "irrigation mode": "Bewässerungsmodus",
-      "LinkTap device created.": "LinkTap Gerät erstellt."
+      "LinkTap device created.": "LinkTap Gerät erstellt.",
+      "location": "Ort",
+      "status": "Status",
+      "version": "Version",
+      "Taplinker name": "Taplinker Name",
+      "signal": "Empfangsstärke",
+      "battery status": "Batterie Status"
     }
   }
 }
