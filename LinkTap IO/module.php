@@ -29,11 +29,10 @@ class LinkTapIO extends IPSModule
         $this->RegisterAttributeString('devices', '[]');
         $this->RegisterTimer("Delay", 0, "LINKTAP_DelayCommand(" . $this->InstanceID . ");");
         $this->RegisterAttributeBoolean("simulation", false);
-        $this->RegisterPropertyInteger("watering_status_timestamp", 0);
-        $this->RegisterPropertyInteger("last_get_devices_timestamp", 0);
-        $this->RegisterPropertyInteger("last_command_timestamp", 0);
+        $this->RegisterAttributeInteger("watering_status_timestamp", 0);
+        $this->RegisterAttributeInteger("last_get_devices_timestamp", 0);
+        $this->RegisterAttributeInteger("last_command_timestamp", 0);
         $this->RegisterAttributeString('watering_status', '[]');
-
 
         //we will wait until the kernel is ready
         $this->RegisterMessage(0, IPS_KERNELMESSAGE);
