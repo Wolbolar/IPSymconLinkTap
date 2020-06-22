@@ -44,7 +44,7 @@ class LinkTap extends IPSModule
         $this->RegisterAttributeBoolean('signal_enabled', false);
         $this->RegisterAttributeString('batteryStatus', '');
         $this->RegisterAttributeBoolean('batteryStatus_enabled', false);
-        $this->RegisterAttributeString('workMode', ''); // currently activated work mode. ‘O’ is for Odd-Even Mode, ‘M’ is for Instant Mode, ‘I’ is for Interval Mode, ‘T’ is for 7-Day Mode, ‘Y’ is for Month Mode, ‘N’ means no work mode assigned.
+        $this->RegisterAttributeInteger('workMode', 5); // currently activated work mode.
         $this->RegisterAttributeBoolean('workMode_enabled', false);
 
         $this->RegisterAttributeInteger('interval', 0);
@@ -169,11 +169,13 @@ class LinkTap extends IPSModule
         );
 
         $mode_ass = [
-            [0, $this->Translate("Interval Mode"), "", -1],
-            [1, $this->Translate("Odd-Even Mode"), "", -1],
-            [2, $this->Translate("Seven Day Mode"), "", -1],
-            [3, $this->Translate("Month Mode"), "", -1]];
-        $this->RegisterProfileAssociation('LinkTap.IrrigationMode', 'Drops', '', '', 0, 3, 1, 0, VARIABLETYPE_INTEGER, $mode_ass);
+            [0, $this->Translate("Instant Mode"), "", -1],
+            [1, $this->Translate("Interval Mode"), "", -1],
+            [2, $this->Translate("Odd-Even Mode"), "", -1],
+            [3, $this->Translate("Seven Day Mode"), "", -1],
+            [4, $this->Translate("Month Mode"), "", -1],
+            [5, $this->Translate("Month Mode"), "", -1]];
+        $this->RegisterProfileAssociation('LinkTap.IrrigationMode', 'Drops', '', '', 0, 5, 1, 0, VARIABLETYPE_INTEGER, $mode_ass);
 
         $this->SetupVariable(
             'irrigation_mode', $this->Translate('irrigation mode'), 'LinkTap.IrrigationMode', $this->_getPosition(), VARIABLETYPE_INTEGER, true, true
@@ -261,8 +263,8 @@ class LinkTap extends IPSModule
         $this->WriteEnabledValue('irrigation_state', VARIABLETYPE_BOOLEAN, true);
         $this->WriteEnabledValue('irrigation_time', VARIABLETYPE_INTEGER, true);
         $this->WriteEnabledValue('irrigation_mode', VARIABLETYPE_INTEGER, true);
-        // $this->WriteEnabledValue('batteryStatus', VARIABLETYPE_INTEGER);
-        // $this->WriteEnabledValue('signal', VARIABLETYPE_INTEGER);
+        $this->WriteEnabledValue('batteryStatus', VARIABLETYPE_INTEGER);
+        $this->WriteEnabledValue('signal', VARIABLETYPE_INTEGER);
     }
 
     // LinkTap API
@@ -432,22 +434,58 @@ class LinkTap extends IPSModule
                             $this->WriteAttributeString('location', $location);
                             $version = $taplink->version;
                             $this->WriteAttributeString('version', $version);
+                            $signal = intval(str_replace('%', '', $taplink->signal));
+                            $this->WriteAttributeInteger('signal', $signal);
+                            $batteryStatus = intval(str_replace('%', '', $taplink->batteryStatus));
+                            $this->WriteAttributeInteger('batteryStatus', $batteryStatus);
+                            $workMode = $taplink->workMode;
+                            if($workMode == 'M') // ‘M’ is for Instant Mode
+                            {
+                            $this->WriteAttributeInteger('workMode', 0);
+                            }
+                            elseif($workMode == 'I') // ‘I’ is for Interval Mode
+                            {
+                                $this->WriteAttributeInteger('workMode', 1);
+                            }
+                            elseif($workMode == 'O') // ‘O’ is for Odd-Even Mode
+                            {
+                                $this->WriteAttributeInteger('workMode', 2);
+                            }
+                            elseif($workMode == 'T') // ‘T’ is for 7-Day Mode
+                            {
+                                $this->WriteAttributeInteger('workMode', 3);
+                            }
+                            elseif($workMode == 'Y') // ‘Y’ is for Month Mode
+                            {
+                                $this->WriteAttributeInteger('workMode', 4);
+                            }
+                            elseif($workMode == 'N') // N’ means no work mode assigned.
+                            {
+                                $this->WriteAttributeInteger('workMode', 5);
+                            }
+                            $slot = $taplink->slot; // current watering plan
+                            $hour = $slot->{0}->H; // 'H' represents hour
+                            $this->WriteAttributeInteger('H', $hour);
+                            $minute = $slot->{0}->M; // 'M' represents minute
+                            $this->WriteAttributeInteger('M', $minute);
+                            $duration = $slot->{0}->D; // 'D' represents duration
+                            $this->WriteAttributeInteger('D', $duration);
+
+                            $watering = $taplink->watering;
+                            $this->WriteAttributeInteger('watering', $watering);
+                            $vel = $taplink->vel; // latest flow rate (unit: ml per minute. For G2 only)
+                            $this->WriteAttributeInteger('vel', $vel);
+                            $fall = $taplink->fall; // fall incident flag (boolean. For G2 only)
+                            $this->WriteAttributeBoolean('fall', $fall);
+                            $valveBroken = $taplink->valveBroken; // valve failed to open flag (boolean. For G2 only)
+                            $this->WriteAttributeBoolean('valveBroken', $valveBroken);
+                            $noWater = $taplink->noWater; // water cut-off flag (boolean. For G2 only)
+                            $this->WriteAttributeBoolean('noWater', $noWater);
+
+
 
                             /*
-                             * Explanation of some fields:
-                    workMode: currently activated work mode. ‘O’ is for Odd-Even Mode, ‘M’ is for Instant Mode, ‘I’ is for Interval Mode, ‘T’ is for 7-Day Mode, ‘Y’ is for Month Mode, ‘N’ means no work mode assigned.
-                    slot: current watering plan. 'H' represents hour, 'M' represents minute, 'D' represents duration.
-                    vel: latest flow rate (unit: ml per minute. For G2 only).
-                    fall: fall incident flag (boolean. For G2 only).
-                    valveBroken: valve failed to open flag (boolean. For G2 only).
-                    noWater: water cut-off flag (boolean. For G2 only).
-                             */
 
-                            /*
-
-'signal' => '32%',
-'batteryStatus' => '100%',
-'workMode' => 'I',
 'plan' =>
 (object) array(
 'interval' => 1,
@@ -457,22 +495,6 @@ class LinkTap extends IPSModule
 'ecoOff' => 1,
 'ecoOn' => 1,
 'eco' => false,
-'slot' =>
-array (
-0 =>
-(object) array(
-'H' => 7,
-'M' => 0,
-'D' => 840,
-),
-),
-),
-'watering' => NULL,
-'vel' => 0,
-'fall' => false,
-'valveBroken' => false,
-'noWater' => false,
-),
                              */
                         }
                     }

@@ -29,6 +29,11 @@ class LinkTapIO extends IPSModule
         $this->RegisterAttributeString('devices', '[]');
         $this->RegisterTimer("Delay", 0, "LINKTAP_DelayCommand(" . $this->InstanceID . ");");
         $this->RegisterAttributeBoolean("simulation", false);
+        $this->RegisterPropertyInteger("watering_status_timestamp", 0);
+        $this->RegisterPropertyInteger("last_get_devices_timestamp", 0);
+        $this->RegisterPropertyInteger("last_command_timestamp", 0);
+        $this->RegisterAttributeString('watering_status', '[]');
+
 
         //we will wait until the kernel is ready
         $this->RegisterMessage(0, IPS_KERNELMESSAGE);
@@ -115,6 +120,23 @@ class LinkTapIO extends IPSModule
 
     protected function PostData($url, $data)
     {
+        $last_command_timestamp = $this->ReadAttributeInteger('last_command_timestamp');
+        $last_get_devices_timestamp = $this->ReadAttributeInteger('last_get_devices_timestamp');
+        $watering_status_timestamp = $this->ReadAttributeInteger('watering_status_timestamp');
+
+        if(((time() - $watering_status_timestamp) < 30) &&  ($url == self::LINK_TAP_BASE_URL . self::GET_WATERING_STATUS))
+        {
+            return '[]';
+        }
+        if(((time() - $last_get_devices_timestamp) < 300) &&  ($url == self::LINK_TAP_BASE_URL . self::GET_ALL_DEVICES))
+        {
+            return '[]';
+        }
+        if(((time() - $last_command_timestamp) < 15) &&  ($url != self::LINK_TAP_BASE_URL . self::GET_ALL_DEVICES && $url != self::LINK_TAP_BASE_URL . self::GET_WATERING_STATUS))
+        {
+            $this->DelayCommand($url, $data);
+        }
+
         $this->SendDebug('LinkTap URL', $url, 0);
         $this->SendDebug('LinkTap Data', $data, 0);
 
@@ -151,6 +173,18 @@ class LinkTapIO extends IPSModule
             $this->SendDebug(__FUNCTION__, 'Header Out:' . $header_out, 0);
             curl_close($ch);
         }
+        if($url == self::LINK_TAP_BASE_URL . self::GET_WATERING_STATUS)
+        {
+            $this->WriteAttributeInteger('watering_status_timestamp', time());
+        }
+        elseif($url == self::LINK_TAP_BASE_URL . self::GET_ALL_DEVICES)
+        {
+            $this->WriteAttributeInteger('last_get_devices_timestamp', time());
+        }
+        elseif($url != self::LINK_TAP_BASE_URL . self::GET_ALL_DEVICES && $url == self::LINK_TAP_BASE_URL . self::GET_WATERING_STATUS)
+        {
+            $this->WriteAttributeInteger('last_command_timestamp', time());
+        }
         return $this->getReturnValues($info, $response);
     }
 
@@ -174,7 +208,7 @@ class LinkTapIO extends IPSModule
             $body = substr($response, $HeaderSize);
             $this->SendDebug(__FUNCTION__, 'Response (body): ' . $body, 0);
         }
-        if ((strpos($http_code, '200') > 0)) {
+        if ((strpos(strval($http_code), '200') > 0)) {
             $this->SendDebug('HTTP Response', 'Success. Response Body: ' . $body, 0);
             $response = json_decode($body, true);
             $result = $response['result'];
@@ -196,7 +230,7 @@ class LinkTapIO extends IPSModule
         return $linktap_response;
     }
 
-    public function DelayCommand()
+    protected function DelayCommand($url, $data)
     {
         $last_command_timestamp = $this->ReadAttributeInteger('last_command_timestamp');
         do {
@@ -205,6 +239,8 @@ class LinkTapIO extends IPSModule
             $remaining_seconds = $current_time - $last_command_timestamp;
             $this->SendDebug('API Limit', 'reached API limit, waiting for ' . (15 - $remaining_seconds), 0);
         } while ($remaining_seconds < 15);
+
+        $this->PostData($url, $data);
     }
 
     /** Get LinkTap Configuration
