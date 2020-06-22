@@ -125,11 +125,11 @@ class LinkTapIO extends IPSModule
 
         if(((time() - $watering_status_timestamp) < 30) &&  ($url == self::LINK_TAP_BASE_URL . self::GET_WATERING_STATUS))
         {
-            return '[]';
+            return $this->ReadAttributeString('watering_status');
         }
         if(((time() - $last_get_devices_timestamp) < 300) &&  ($url == self::LINK_TAP_BASE_URL . self::GET_ALL_DEVICES))
         {
-            return '[]';
+            return $this->ReadAttributeString('devices');
         }
         if(((time() - $last_command_timestamp) < 15) &&  ($url != self::LINK_TAP_BASE_URL . self::GET_ALL_DEVICES && $url != self::LINK_TAP_BASE_URL . self::GET_WATERING_STATUS))
         {
@@ -207,7 +207,7 @@ class LinkTapIO extends IPSModule
             $body = substr($response, $HeaderSize);
             $this->SendDebug(__FUNCTION__, 'Response (body): ' . $body, 0);
         }
-        if ((strpos(strval($http_code), '200') > 0)) {
+        if ($http_code == 200) {
             $this->SendDebug('HTTP Response', 'Success. Response Body: ' . $body, 0);
             $response = json_decode($body, true);
             $result = $response['result'];
@@ -216,8 +216,16 @@ class LinkTapIO extends IPSModule
                 $linktap_response = $response['message'];
             } elseif (isset($response['status'])) {
                 $linktap_response = json_encode($response['status']);
+                if($result == 'ok')
+                {
+                    $this->WriteAttributeString('watering_status', json_encode($response['status']));
+                }
             } elseif (isset($response['devices'])) {
                 $linktap_response = json_encode($response['devices']);
+                if($result == 'ok')
+                {
+                    $this->WriteAttributeString('devices', json_encode($response['devices']));
+                }
             }
         } else {
             $this->SendDebug('HTTP Response Header', $http_code . ' Response Body: ' . $body, 0);
@@ -353,11 +361,7 @@ class LinkTapIO extends IPSModule
             $this->WriteAttributeString('devices', json_encode($devices));
             return json_encode($devices);
         } else {
-            $devices = $this->PostData($url, $data);
-            if ($devices != '[]') {
-                $this->WriteAttributeString('devices', json_encode($devices));
-            }
-            return $devices;
+            return $this->PostData($url, $data);
         }
     }
 

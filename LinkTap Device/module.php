@@ -40,9 +40,9 @@ class LinkTap extends IPSModule
         $this->RegisterAttributeBoolean('version_enabled', false);
         $this->RegisterAttributeString('taplinkerName', '');
         $this->RegisterAttributeBoolean('taplinkerName_enabled', false);
-        $this->RegisterAttributeString('signal', '');
+        $this->RegisterAttributeInteger('signal', 0);
         $this->RegisterAttributeBoolean('signal_enabled', false);
-        $this->RegisterAttributeString('batteryStatus', '');
+        $this->RegisterAttributeInteger('batteryStatus', 0);
         $this->RegisterAttributeBoolean('batteryStatus_enabled', false);
         $this->RegisterAttributeInteger('workMode', 5); // currently activated work mode.
         $this->RegisterAttributeBoolean('workMode_enabled', false);
@@ -463,7 +463,22 @@ class LinkTap extends IPSModule
                             {
                                 $this->WriteAttributeInteger('workMode', 5);
                             }
-                            $slot = $taplink->slot; // current watering plan
+                            $plan = $taplink->plan; // current watering plan
+                            $interval = $plan->interval;
+                            $this->WriteAttributeInteger('interval', $interval);
+                            $Y = $plan->Y;
+                            $this->WriteAttributeInteger('Y', $Y);
+                            $X = $plan->X;
+                            $this->WriteAttributeInteger('X', $X);
+                            $Z = $plan->Z;
+                            $this->WriteAttributeInteger('Z', $Z);
+                            $ecoOff = $plan->ecoOff;
+                            $this->WriteAttributeInteger('ecoOff', $ecoOff);
+                            $ecoOn = $plan->ecoOn;
+                            $this->WriteAttributeInteger('ecoOn', $ecoOn);
+                            $eco = $plan->eco;
+                            $this->WriteAttributeBoolean('eco', $eco);
+                            $slot = $plan->slot; // current watering plan
                             $hour = $slot->{0}->H; // 'H' represents hour
                             $this->WriteAttributeInteger('H', $hour);
                             $minute = $slot->{0}->M; // 'M' represents minute
@@ -481,30 +496,10 @@ class LinkTap extends IPSModule
                             $this->WriteAttributeBoolean('valveBroken', $valveBroken);
                             $noWater = $taplink->noWater; // water cut-off flag (boolean. For G2 only)
                             $this->WriteAttributeBoolean('noWater', $noWater);
-
-
-
-                            /*
-
-'plan' =>
-(object) array(
-'interval' => 1,
-'Y' => 2020,
-'X' => 6,
-'Z' => 18,
-'ecoOff' => 1,
-'ecoOn' => 1,
-'eco' => false,
-                             */
                         }
                     }
-
-
                 }
-
-
                 $this->SendDebug('LinkTap Get Devices', $payload, 0);
-                // todo write values
             }
             else
             {
@@ -708,7 +703,7 @@ vel: current flow rate (unit: ml per minute. For G2 only).
     protected function FormHead()
     {
         $taplinkerId = $this->ReadPropertyString('taplinkerId');;
-        if ($taplinkerId == '') {
+        if ($taplinkerId != '') {
             $form = [
                 [
                     'type' => 'RowLayout',

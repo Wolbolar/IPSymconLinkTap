@@ -10,7 +10,8 @@
       "Month Mode": "Monats Modus",
       "irrigation status": "Bewässerungsstatus",
       "irrigation time": "Bewässerungszeit",
-      "irrigation mode": "Bewässerungsmodus"
+      "irrigation mode": "Bewässerungsmodus",
+      "LinkTap device created.": "LinkTap Gerät erstellt."
     },
     "de_AT": {
       "This device can only created by the LinkTap configurator, please use the LinkTap configurator for creating LinkTap devices.": "Das Gerät kann nur durch ein LinkTap Konfigurator angelegt werden, bitte den LinkTap Konfigurator benutzten um die LinkTap Geräte Instanz zu erzeugen.",
@@ -22,7 +23,8 @@
       "Month Mode": "Monats Modus",
       "irrigation status": "Bewässerungsstatus",
       "irrigation time": "Bewässerungszeit",
-      "irrigation mode": "Bewässerungsmodus"
+      "irrigation mode": "Bewässerungsmodus",
+      "LinkTap device created.": "LinkTap Gerät erstellt."
     },
     "de_CH": {
       "This device can only created by the LinkTap configurator, please use the LinkTap configurator for creating LinkTap devices.": "Das Gerät kann nur durch ein LinkTap Konfigurator angelegt werden, bitte den LinkTap Konfigurator benutzten um die LinkTap Geräte Instanz zu erzeugen.",
@@ -34,7 +36,8 @@
       "Month Mode": "Monats Modus",
       "irrigation status": "Bewässerungsstatus",
       "irrigation time": "Bewässerungszeit",
-      "irrigation mode": "Bewässerungsmodus"
+      "irrigation mode": "Bewässerungsmodus",
+      "LinkTap device created.": "LinkTap Gerät erstellt."
     }
   }
 }

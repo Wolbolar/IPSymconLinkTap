@@ -18,7 +18,13 @@
       "Please follow the instructions.": "Bitte der Anleitung folgen",
       "no category selected.": "Keine Kategorie ausgewählt",
       "choose category for import.": "Kategorie zum Import auswählen.",
-      "configuration valid.": "Konfigurator ist ok."
+      "configuration valid.": "Konfigurator ist ok.",
+      "category for LinkTap devices": "Kategorie für LinkTap Geräte",
+      "category LinkTap devices": "Kategorie LinkTap Geräte",
+      "taplinker ID": "TapLinker ID",
+      "version": "Version",
+      "location": "Ort",
+      "gateway id": "Gateway ID"
     }
   }
 }
