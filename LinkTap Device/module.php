@@ -752,7 +752,7 @@ vel: current flow rate (unit: ml per minute. For G2 only).
                 'type' => 'Button',
                 'visible' => true,
                 'caption' => 'Read Information',
-                'onClick' => 'LINKTAP_ReadInformation($id);'
+                'onClick' => 'LINKTAP_Get_All_Devices($id);'
             ]
         ];
         return $form;
