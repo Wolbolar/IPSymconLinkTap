@@ -27,33 +27,18 @@ class LinkTapIO extends IPSModule
         $this->RegisterPropertyInteger("UpdateInterval", 15);
         $this->RegisterTimer("Update", 0, "LINKTAP_Update(" . $this->InstanceID . ");");
         $this->RegisterAttributeString('devices', '[]');
-        $this->RegisterTimer("Update", 0, "LINKTAP_DelayCommand(" . $this->InstanceID . ");");
+        $this->RegisterTimer("Delay", 0, "LINKTAP_DelayCommand(" . $this->InstanceID . ");");
+        $this->RegisterAttributeBoolean("simulation", false);
+        $this->RegisterAttributeInteger("watering_status_timestamp", 0);
+        $this->RegisterAttributeInteger("last_get_devices_timestamp", 0);
+        $this->RegisterAttributeInteger("last_command_timestamp", 0);
+        $this->RegisterAttributeString('watering_status', '[]');
+        $this->RegisterAttributeInteger('delay_command', 0);
 
         //we will wait until the kernel is ready
         $this->RegisterMessage(0, IPS_KERNELMESSAGE);
     }
 
-    public function ApplyChanges()
-    {
-        //Never delete this line!
-        parent::ApplyChanges();
-
-        if (IPS_GetKernelRunlevel() !== KR_READY) {
-            return;
-        }
-
-
-        $linktap_interval = $this->ReadPropertyInteger('UpdateInterval');
-        $this->SetLinkTapInterval($linktap_interval);
-
-        if ($this->ReadAttributeString('Token') == '') {
-            $this->SetStatus(IS_INACTIVE);
-        } else {
-            $this->SetStatus(IS_ACTIVE);
-        }
-    }
-
-    /** @noinspection PhpMissingParentCallCommonInspection */
     public function MessageSink($TimeStamp, $SenderID, $Message, $Data)
     {
         switch ($Message) {
@@ -74,27 +59,49 @@ class LinkTapIO extends IPSModule
         }
     }
 
-    public function Update()
+    /** @noinspection PhpMissingParentCallCommonInspection */
+
+    public function ApplyChanges()
     {
-        /*
-        $data = json_encode([
-            'username' => $this->ReadPropertyString('user'),
-            'apiKey' => $this->ReadPropertyString('apikey'),
-            'taplinkerId' => $this->ReadAttributeString('taplinkerId')
-        ]);
-        $payload = $this->Query_Watering_Status($data);
-        $this->SendDataToChildren(json_encode(Array("DataID" => "{F1F4C680-F5E4-F0E0-670D-0574FF253233}", "Buffer" => $payload)));
-        */
+        //Never delete this line!
+        parent::ApplyChanges();
+
+        if (IPS_GetKernelRunlevel() !== KR_READY) {
+            return;
+        }
+
+
+        $linktap_interval = $this->ReadPropertyInteger('UpdateInterval');
+        $this->SetLinkTapInterval($linktap_interval);
+
+        if ($this->ReadPropertyString('apikey') == '') {
+            $this->SetStatus(IS_INACTIVE);
+        } else {
+            $this->SetStatus(IS_ACTIVE);
+        }
     }
 
     private function SetLinkTapInterval($linktap_interval): void
     {
-        if($linktap_interval < 15 && $linktap_interval != 0)
-        {
+        if ($linktap_interval < 15 && $linktap_interval != 0) {
             $linktap_interval = 15;
         }
-        $interval     = $linktap_interval * 1000  * 60; // minutes
+        $interval = $linktap_interval * 1000 * 60; // minutes
         $this->SetTimerInterval('Update', $interval);
+    }
+
+    public function Update()
+    {
+        $data = json_encode([
+        'username' => $this->ReadPropertyString('user'),
+        'apiKey' => $this->ReadPropertyString('apikey')
+    ]);
+        $this->Get_All_Devices_Info($data);
+    }
+
+    public function UseSimulation(bool $status)
+    {
+        $this->WriteAttributeBoolean('simulation', $status);
     }
 
     public function GetAPIKey()
@@ -107,25 +114,137 @@ class LinkTapIO extends IPSModule
         return $this->PostData($url, $data);
     }
 
-    // LinkTap API
-
-    protected function CheckIntervalLastCommand()
+    protected function PostData($url, $data)
     {
         $last_command_timestamp = $this->ReadAttributeInteger('last_command_timestamp');
-        $current_time = time();
-        $interval = $current_time - $last_command_timestamp;
-        if($interval > 15)
+        $last_get_devices_timestamp = $this->ReadAttributeInteger('last_get_devices_timestamp');
+        $watering_status_timestamp = $this->ReadAttributeInteger('watering_status_timestamp');
+
+        if(((time() - $watering_status_timestamp) < 30) &&  ($url == self::LINK_TAP_BASE_URL . self::GET_WATERING_STATUS))
         {
-            $check = true;
+            return $this->ReadAttributeString('watering_status');
         }
-        else
+        if(((time() - $last_get_devices_timestamp) < 300) &&  ($url == self::LINK_TAP_BASE_URL . self::GET_ALL_DEVICES))
         {
-            $check = false;
+            return $this->ReadAttributeString('devices');
         }
-        return $check;
+        if(((time() - $last_command_timestamp) < 15) &&  ($url != self::LINK_TAP_BASE_URL . self::GET_ALL_DEVICES && $url != self::LINK_TAP_BASE_URL . self::GET_WATERING_STATUS))
+        {
+            $this->DelayCommand($url, $data);
+        }
+
+        $this->SendDebug('LinkTap URL', $url, 0);
+        $this->SendDebug('LinkTap Data', $data, 0);
+
+
+        if ($url == self::LINK_TAP_BASE_URL . self::GET_API_KEY) {
+            $headers = ['accept: application/json, text/plain, */*', 'accept-encoding: gzip, deflate, br', 'accept-language: de-DE,de;q=0.9,en;q=0.8,en-US;q=0.7', 'Content-type: application/json;charset="UTF-8"', 'content-length: ' . strlen($data), 'origin: https://www.link-tap.com'];
+        } else {
+            $headers[] = "Accept-Charset: UTF-8";
+            $headers[] = "Content-type: application/json;charset=\"UTF-8\"";
+            $headers[] = "Content-Length: " . strlen($data);
+        }
+        $simulation = $this->ReadAttributeBoolean('simulation');
+        if ($simulation) {
+            $response = '{"result":"ok","message":"success"}';
+            $info = [];
+        } else {
+            $ch = curl_init();
+
+            curl_setopt($ch, CURLOPT_POST, 1);
+            // curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+            curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HEADER, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+            curl_setopt($ch, CURLOPT_URL, $url);
+
+            $response = curl_exec($ch);
+            if (curl_errno($ch)) {
+                trigger_error('Error:' . curl_error($ch));
+            }
+            $info = curl_getinfo($ch);
+            $header_out = curl_getinfo($ch, CURLINFO_HEADER_OUT);
+            $this->SendDebug(__FUNCTION__, 'Header Out:' . $header_out, 0);
+            curl_close($ch);
+        }
+        if($url == self::LINK_TAP_BASE_URL . self::GET_WATERING_STATUS)
+        {
+            $this->WriteAttributeInteger('watering_status_timestamp', time());
+        }
+        elseif($url == self::LINK_TAP_BASE_URL . self::GET_ALL_DEVICES)
+        {
+            $this->WriteAttributeInteger('last_get_devices_timestamp', time());
+        }
+        elseif($url != self::LINK_TAP_BASE_URL . self::GET_ALL_DEVICES && $url == self::LINK_TAP_BASE_URL . self::GET_WATERING_STATUS)
+        {
+            $this->WriteAttributeInteger('last_command_timestamp', time());
+        }
+        return $this->getReturnValues($info, $response);
     }
 
-    public function DelayCommand()
+    // LinkTap API
+
+    private function getReturnValues(array $info, string $response)
+    {
+        $simulation = $this->ReadAttributeBoolean('simulation');
+        if ($simulation) {
+            $http_code = 200;
+            $body = $response;
+        } else {
+            $HeaderSize = $info['header_size'];
+
+            $http_code = $info['http_code'];
+            $this->SendDebug(__FUNCTION__, 'Response (http_code): ' . $http_code, 0);
+
+            $header = explode("\n", substr($response, 0, $HeaderSize));
+            $this->SendDebug(__FUNCTION__, 'Response (header): ' . json_encode($header), 0);
+
+            $body = substr($response, $HeaderSize);
+            $this->SendDebug(__FUNCTION__, 'Response (body): ' . $body, 0);
+        }
+        if ($http_code == 200) {
+            $this->SendDebug('HTTP Response', 'Success. Response Body: ' . $body, 0);
+            $response = json_decode($body, true);
+            $result = $response['result'];
+            $this->SendDebug(__FUNCTION__, 'Response (result): ' . $result, 0);
+            if (isset($response['message'])) {
+                $linktap_response = $response['message'];
+            } elseif (isset($response['status'])) {
+
+                if($result == 'ok')
+                {
+                    if(empty($response['status']))
+                    {
+                        $linktap_response = $this->ReadAttributeString('watering_status');
+                    }
+                    else{
+                        $linktap_response = json_encode($response['status']);
+                        $this->WriteAttributeString('watering_status', json_encode($response['status']));
+                    }
+                }
+            } elseif (isset($response['devices'])) {
+                $linktap_response = json_encode($response['devices']);
+                if($result == 'ok')
+                {
+                    $this->WriteAttributeString('devices', json_encode($response['devices']));
+                }
+            }
+            else{
+                $linktap_response = '[]';
+            }
+        } else {
+            $this->SendDebug('HTTP Response Header', $http_code . ' Response Body: ' . $body, 0);
+            $result = 'not ok';
+            $this->SendDebug(__FUNCTION__, 'Response (result): ' . $result, 0);
+            $linktap_response = '[]';
+
+        }
+        return $linktap_response;
+    }
+
+    protected function DelayCommand($url, $data)
     {
         $last_command_timestamp = $this->ReadAttributeInteger('last_command_timestamp');
         do {
@@ -134,6 +253,167 @@ class LinkTapIO extends IPSModule
             $remaining_seconds = $current_time - $last_command_timestamp;
             $this->SendDebug('API Limit', 'reached API limit, waiting for ' . (15 - $remaining_seconds), 0);
         } while ($remaining_seconds < 15);
+
+        $this->PostData($url, $data);
+    }
+
+    /** Get LinkTap Configuration
+     * @return bool|false|string
+     */
+    public function GetConfiguration()
+    {
+        $devices = '[]';
+        if ($this->ReadPropertyString('user') != '' && $this->ReadPropertyString('apikey') != '') {
+            $data = $data = json_encode([
+                'username' => $this->ReadPropertyString('user'),
+                'apiKey' => $this->ReadPropertyString('apikey')
+            ]);
+            $devices = $this->Get_All_Devices_Info($data);
+        }
+        return $devices;
+    }
+
+    /** Get All Devices
+     *
+     * @param $data
+     * @return string
+     */
+    protected function Get_All_Devices_Info($data)
+    {
+        $url = self::LINK_TAP_BASE_URL . self::GET_ALL_DEVICES;
+        $simulation = $this->ReadAttributeBoolean('simulation');
+        if ($simulation) {
+            $data = (object)array(
+                'result' => 'ok',
+                'devices' =>
+                    array(
+                        0 =>
+                            (object)array(
+                                'name' => 'Link-Tap-1-Gateway',
+                                'location' => '12345 Ort, Deutschland',
+                                'gatewayId' => '1234567890',
+                                'status' => 'Connected',
+                                'version' => 'B1234567890I_C1234567890',
+                                'taplinker' =>
+                                    array(
+                                        0 =>
+                                            (object)array(
+                                                'taplinkerName' => 'Hauptanschluss',
+                                                'taplinkerId' => '1234567890',
+                                                'status' => 'Connected',
+                                                'location' => 'Not specified',
+                                                'version' => 'T1234567890',
+                                                'signal' => '32%',
+                                                'batteryStatus' => '100%',
+                                                'workMode' => 'I',
+                                                'plan' =>
+                                                    (object)array(
+                                                        'interval' => 1,
+                                                        'Y' => 2020,
+                                                        'X' => 6,
+                                                        'Z' => 18,
+                                                        'ecoOff' => 1,
+                                                        'ecoOn' => 1,
+                                                        'eco' => false,
+                                                        'slot' =>
+                                                            array(
+                                                                0 =>
+                                                                    (object)array(
+                                                                        'H' => 7,
+                                                                        'M' => 0,
+                                                                        'D' => 840,
+                                                                    ),
+                                                            ),
+                                                    ),
+                                                'watering' => NULL,
+                                                'vel' => 0,
+                                                'fall' => false,
+                                                'valveBroken' => false,
+                                                'noWater' => false,
+                                            ),
+                                        1 =>
+                                            (object)array(
+                                                'taplinkerName' => 'Nebenanschluss',
+                                                'taplinkerId' => '234567890',
+                                                'status' => 'Connected',
+                                                'location' => 'Not specified',
+                                                'version' => 'T1234567890',
+                                                'signal' => '36%',
+                                                'batteryStatus' => '100%',
+                                                'workMode' => 'M',
+                                                'plan' =>
+                                                    (object)array(
+                                                        'duration' => 0,
+                                                        'Y' => 2020,
+                                                        'X' => 6,
+                                                        'Z' => 20,
+                                                        'H' => 10,
+                                                        'M' => 35,
+                                                        'ecoOff' => 2,
+                                                        'ecoOn' => 1,
+                                                        'eco' => true,
+                                                        'action' => false,
+                                                    ),
+                                                'watering' => NULL,
+                                                'vel' => 3506,
+                                                'fall' => false,
+                                                'valveBroken' => false,
+                                                'noWater' => false,
+                                            ),
+                                    ),
+                            ),
+                    ),
+            );
+            $devices = $data->devices;
+            $this->WriteAttributeString('devices', json_encode($devices));
+            $this->SendDataToChildren(json_encode(Array("DataID" => "{F1F4C680-F5E4-F0E0-670D-0574FF253233}", "Buffer" => $devices)));
+            return json_encode($devices);
+        } else {
+            $devices = $this->PostData($url, $data);
+            $this->SendDataToChildren(json_encode(Array("DataID" => "{F1F4C680-F5E4-F0E0-670D-0574FF253233}", "Buffer" => $devices)));
+            return $devices;
+        }
+    }
+
+    public function ForwardData($data)
+    {
+        $data = json_decode($data);
+        $response = '[]';
+        $type = $data->Type;
+        if (strlen($data->Payload) > 0) {
+            if ($type == 'POST') {
+                $this->SendDebug('ForwardData', $data->Endpoint . ', Payload: ' . $data->Payload, 0);
+                $post_data = str_replace(['{USERNAME}', '{APIKEY}'], [$this->ReadPropertyString('user'), $this->ReadPropertyString('apikey')], $data->Payload);
+                $this->SendDebug('ForwardData Post Data', $post_data, 0);
+                if ($data->Endpoint == 'Watering_On') {
+                    $response = $this->Send_Watering_On($post_data);
+                } elseif ($data->Endpoint == 'Watering_On') {
+                    $response = $this->Send_Watering_On($post_data);
+                } elseif ($data->Endpoint == 'Watering_Off') {
+                    $response = $this->Send_Watering_Off($post_data);
+                } elseif ($data->Endpoint == 'ActivateIntervalMode') {
+                    $response = $this->Send_ActivateIntervalMode($post_data);
+                } elseif ($data->Endpoint == 'ActivateOddEvenMode') {
+                    $response = $this->Send_ActivateOddEvenMode($post_data);
+                } elseif ($data->Endpoint == 'ActivateSevenDayMode') {
+                    $response = $this->Send_ActivateSevenDayMode($post_data);
+                } elseif ($data->Endpoint == 'ActivateMonthMode') {
+                    $response = $this->Send_ActivateMonthMode($post_data);
+                } elseif ($data->Endpoint == 'Get_All_Devices') {
+                    $response = $this->Get_All_Devices_Info($post_data);
+                } elseif ($data->Endpoint == 'Get_All_Devices_Buffer') {
+                    $response = $this->Get_All_Devices_Buffer();
+                } elseif ($data->Endpoint == 'Watering_Status') {
+                    $response = $this->Query_Watering_Status($post_data);
+                } elseif ($data->Endpoint == 'apikey') {
+                    $response = $this->CheckAPIKey();
+                }
+                $this->SendDebug('ForwardData Response', $response, 0);
+            }
+        } else {
+            $this->SendDebug('ForwardData', 'Type: ' . $type . ', Endpoint: ' . $data->Endpoint, 0);
+        }
+        return $response;
     }
 
     /** Watering On
@@ -147,7 +427,6 @@ class LinkTapIO extends IPSModule
         return $this->PostData($url, $data);
     }
 
-
     /** Watering Off
      * @param $data
      * @return string
@@ -157,7 +436,6 @@ class LinkTapIO extends IPSModule
         $url = self::LINK_TAP_BASE_URL . self::ACTIVATE_INSTANT_MODE;
         return $this->PostData($url, $data);
     }
-
 
     /** Activate Interval Mode
      * Rate limiting is applied for this API. The minimum interval of calling this API is 15 seconds.
@@ -202,169 +480,55 @@ class LinkTapIO extends IPSModule
         return $this->PostData($url, $data);
     }
 
-    /** Get All Devices
+    /** Get All Devices Buffer
      *
-     * @param $data
      * @return string
      */
-    protected function Get_All_Devices_Info($data)
+    protected function Get_All_Devices_Buffer()
     {
-        $url = self::LINK_TAP_BASE_URL . self::GET_ALL_DEVICES;
-        return $this->PostData($url, $data);
+        return $this->ReadAttributeString('devices');
     }
 
     /** Watering Status of a single Taplinker
      *
      * @return string
      */
-    public function Query_Watering_Status($data)
+    protected function Query_Watering_Status($data)
     {
         $url = self::LINK_TAP_BASE_URL . self::GET_WATERING_STATUS;
-        return $this->PostData($url, $data);
-    }
-
-    protected function PostData($url, $data)
-    {
-        $this->SendDebug('LinkTap URL', $url, 0);
-        $this->SendDebug('LinkTap Data', $data, 0);
-        $result = '{"result":"ok","message":"success"}';
-        $info = [];
-        $this->SendDebug('LinkTap Response', $result, 0);
-        if($url == self::LINK_TAP_BASE_URL . self::GET_API_KEY)
-        {
-            $headers = ['accept: application/json, text/plain, */*', 'accept-encoding: gzip, deflate, br', 'accept-language: de-DE,de;q=0.9,en;q=0.8,en-US;q=0.7','Content-type: application/json;charset="UTF-8"', 'content-length: ' . strlen($data), 'origin: https://www.link-tap.com'];
-        }
-        else{
-            $headers[] = "Accept-Charset: UTF-8";
-            $headers[] = "Content-type: application/json;charset=\"UTF-8\"";
-            $headers[] = "Content-Length: " . strlen($data);
-        }
-
-        /*
-        $ch = curl_init();
-
-        curl_setopt($ch, CURLOPT_POST, 1);
-        // curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HEADER, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-        curl_setopt($ch, CURLOPT_URL, $url);
-
-        $result = curl_exec($ch);
-        if (curl_errno($ch)) {
-            trigger_error('Error:' . curl_error($ch));
-        }
-        $info       = curl_getinfo($ch);
-        $header_out = curl_getinfo($ch, CURLINFO_HEADER_OUT);
-        $this->SendDebug(__FUNCTION__, 'Header Out:' . $header_out, 0);
-        curl_close($ch);
-        */
-
-        return $this->getReturnValues($info, $result);
-    }
-
-    private function getReturnValues(array $info, string $result)
-    {
-        $body =  $result;
-        $http_code = 'X 200';
-
-        /*
-
-        $HeaderSize = $info['header_size'];
-
-        $http_code = $info['http_code'];
-        $this->SendDebug(__FUNCTION__, 'Response (http_code): ' . $http_code, 0);
-
-        $header = explode("\n", substr($result, 0, $HeaderSize));
-        $this->SendDebug(__FUNCTION__, 'Response (header): ' . json_encode($header), 0);
-
-        $body = substr($result, $HeaderSize);
-        $this->SendDebug(__FUNCTION__, 'Response (body): ' . $body, 0);
-
-        */
-
-        if ((strpos($http_code, '200') > 0)) {
-            $this->SendDebug('HTTP Response Header',  'Success. Response Body: ' . $body, 0);
-        }
-        else{
-            $this->SendDebug('HTTP Response Header', $http_code . ' Response Body: ' . $body, 0);
-            $body =  '[]';
-        }
-        return $body;
-    }
-
-
-    /** Get LinkTap Configuration
-     * @return bool|false|string
-     */
-    public function GetConfiguration()
-    {
-        $devices = '[]';
-        return $devices;
-    }
-
-    public function ForwardData($data)
-    {
-        $data = json_decode($data);
-        $response = '[]';
-        if (strlen($data->Payload) > 0) {
-            $type = $data->Type;
-            if($type == 'POST')
-            {
-                $this->SendDebug('ForwardData', $data->Endpoint . ', Payload: ' . $data->Payload, 0);
-                $post_data = str_replace(['{USERNAME}', '{APIKEY}'], [$this->ReadPropertyString('username'), $this->ReadPropertyString('apiKey')], $data->Payload);
-                if($data->Endpoint == 'Watering_On')
-                {
-                    $response = $this->Send_Watering_On($post_data);
-                }
-                elseif($data->Endpoint == 'Watering_On')
-                {
-                    $response = $this->Send_Watering_On($post_data);
-                }
-                elseif($data->Endpoint == 'Watering_Off')
-                {
-                    $response = $this->Send_Watering_Off($post_data);
-                }
-                elseif($data->Endpoint == 'ActivateIntervalMode')
-                {
-                    $response = $this->Send_ActivateIntervalMode($post_data);
-                }
-                elseif($data->Endpoint == 'ActivateOddEvenMode')
-                {
-                    $response = $this->Send_ActivateOddEvenMode($post_data);
-                }
-                elseif($data->Endpoint == 'ActivateSevenDayMode')
-                {
-                    $response = $this->Send_ActivateSevenDayMode($post_data);
-                }
-                elseif($data->Endpoint == 'ActivateMonthMode')
-                {
-                    $response = $this->Send_ActivateMonthMode($post_data);
-                }
-                elseif($data->Endpoint == 'Get_All_Devices')
-                {
-                    $response = $this->Get_All_Devices_Info($post_data);
-                }
-                elseif($data->Endpoint == 'Watering_Status')
-                {
-                    $response = $this->Query_Watering_Status($post_data);
-                }
-                elseif($data->Endpoint == 'apikey')
-                {
-                    $response = $this->ReadPropertyString('apikey');
-                }
-            }
+        $simulation = $this->ReadAttributeBoolean('simulation');
+        if ($simulation) {
+            $data = (object)array(
+                'result' => 'ok',
+                'status' =>
+                    (object)array(
+                        'onDuration' => '4',
+                        'total' => '5',
+                        'onStamp' => '1592651809576',
+                        'firstDt' => '1592651749983',
+                        'vel' => '0',
+                        'pbThrd' => '25000',
+                        'pcThrd' => '0',
+                        'pDelay' => '60000',
+                        'pbCnt' => '0',
+                        'pcCnt' => '0',
+                        'vol' => '0',
+                    ),
+            );
+            $status = $data->status;
+            return json_encode($status);
         } else {
-            $this->SendDebug('ForwardData', $data->Endpoint, 0);
+            return $this->PostData($url, $data);
         }
-        return $response;
     }
 
-    /***********************************************************
-     * Configuration Form
-     ***********************************************************/
+    protected function CheckAPIKey()
+    {
+        // $apikey = $this->ReadAttributeString('apikey');
+        $apikey = $this->ReadPropertyString('apikey');
+        $this->SendDebug('API Key', $apikey, 0);
+        return $apikey;
+    }
 
     /**
      * build configuration form
@@ -383,24 +547,16 @@ class LinkTapIO extends IPSModule
         return $Form;
     }
 
+    /***********************************************************
+     * Configuration Form
+     ***********************************************************/
+
     /**
      * return form configurations on configuration step
      * @return array
      */
     protected function FormHead()
     {
-        $visibility_register = false;
-        //Check LinkTap connection
-        if ($this->ReadAttributeString('Token') == '') {
-            $visibility_register = true;
-        }
-
-        $visibility_limit = false;
-        //Check Limit
-        if ($this->ReadAttributeBoolean('limit')) {
-            $visibility_limit = true;
-        }
-
         $form = [
             [
                 'type' => 'Image',
@@ -414,13 +570,13 @@ class LinkTapIO extends IPSModule
                 'name' => 'user',
                 'type' => 'ValidationTextBox',
                 'visible' => true,
-                'caption' => 'LinkTap username:'
+                'caption' => 'LinkTap username'
             ],
             [
                 'name' => 'password',
                 'type' => 'PasswordTextBox',
                 'visible' => true,
-                'caption' => 'LinkTap password:'
+                'caption' => 'LinkTap password'
             ],
             [
                 'type' => 'Label',
@@ -431,7 +587,7 @@ class LinkTapIO extends IPSModule
                 'name' => 'apikey',
                 'type' => 'ValidationTextBox',
                 'visible' => true,
-                'caption' => 'LinkTap API key:'
+                'caption' => 'LinkTap API key'
             ],
             [
                 'type' => 'Label',
@@ -454,7 +610,7 @@ class LinkTapIO extends IPSModule
      */
     protected function FormActions()
     {
-       $form = [
+        $form = [
 
             [
                 'type' => 'Label',
@@ -506,5 +662,18 @@ class LinkTapIO extends IPSModule
         ];
 
         return $form;
+    }
+
+    protected function CheckIntervalLastCommand()
+    {
+        $last_command_timestamp = $this->ReadAttributeInteger('last_command_timestamp');
+        $current_time = time();
+        $interval = $current_time - $last_command_timestamp;
+        if ($interval > 15) {
+            $check = true;
+        } else {
+            $check = false;
+        }
+        return $check;
     }
 }

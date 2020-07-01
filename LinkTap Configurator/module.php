@@ -24,29 +24,18 @@ class LinkTapConfigurator extends IPSModule
         parent::ApplyChanges();
 
         $import_category = $this->ReadPropertyInteger('ImportCategoryID');
-        if($import_category == 0)
-        {
+        if ($import_category == 0) {
             $this->SetStatus(202);
         }
         $this->SetStatus(IS_ACTIVE);
     }
 
-    public function GetLinkTapAPIKey()
-    {
-        $token = $this->RequestDataFromParent('apikey');
-        return $token;
-    }
-
-
     public function GetConfiguration()
     {
-        $data = $this->RequestDataFromParent('Get_All_Devices');
-        if($data != '[]')
-        {
-            $devices = $data->devices;
+        $devices = json_decode($this->Get_Devices());
+        if (!empty($devices)) {
             $this->WriteAttributeString('linktap_devices', json_encode($devices));
-            foreach($devices as $device)
-            {
+            foreach ($devices as $device) {
                 $name = $device->name;
                 $this->SendDebug('LinkTap Name', $name, 0);
                 $this->WriteAttributeString('name', $name);
@@ -68,98 +57,30 @@ class LinkTapConfigurator extends IPSModule
         }
     }
 
-    public function RequestDataFromParent(string $endpoint)
+    /** Get All Devices
+     * @param  (string $gatewayId)
+     * @return string
+     */
+    protected function Get_Devices()
+    {
+        $data = json_encode([
+            'username' => '{USERNAME}',
+            'apiKey' => '{APIKEY}'
+        ]);
+        return $this->RequestDataFromParent('Get_All_Devices', $data);
+    }
+
+    protected function RequestDataFromParent(string $endpoint, string $data)
     {
         $data = $this->SendDataToParent(json_encode([
-            'DataID'   => '{3F1DBEA8-38D6-12F4-A487-AF43F6326060}',
-            'Type' => 'GET',
+            'DataID' => '{D0BBCD71-0CF2-3829-FB72-FAAEDA73EA6F}',
+            'Type' => 'POST',
             'Endpoint' => $endpoint,
-            'Payload'  => ''
+            'Payload' => $data
         ]));
         $this->SendDebug('LinkTap Request Response', $endpoint . ": " . $data, 0);
         return $data;
     }
-
-    /**
-     * Liefert alle Geräte.
-     *
-     * @return array configlist all devices
-     */
-    private function Get_ListConfiguration()
-    {
-        $config_list = [];
-        $data = $this->RequestDataFromParent('Get_All_Devices');
-        if ($data != '[]') {
-            $LinkTapInstanceIDList = IPS_GetInstanceListByModuleID('{A3CE72F6-0C41-4B7D-3A3A-05E1C6E94CDE}'); // LinkTap Devices
-            $this->SendDebug('LinkTap Config', $data, 0);
-            $payload = $data->devices;
-            $devices = json_decode($payload, true);
-            $counter = count($devices);
-            if ($counter > 0) {
-                foreach ($devices as $device) {
-                    $instanceID = 0;
-                    $gatewayId = $device->gatewayId;
-                    $this->SendDebug('LinkTap Gateway ID', $gatewayId, 0);
-                    $taplinker = $device->taplinker;
-                    $this->SendDebug('LinkTap TapLinker', json_encode($taplinker), 0);
-                    foreach($taplinker as $taplink)
-                    {
-                        $taplinkerName = $taplink->taplinkerName;
-                        $this->SendDebug('LinkTap taplinker Name', $taplinkerName, 0);
-                        $taplinkerId = $taplink->taplinkerId;
-                        $this->SendDebug('LinkTap taplinker ID', $taplinkerId, 0);
-                        $version = $taplink->version;
-                        $this->SendDebug('LinkTap version', $version, 0);
-                        foreach ($LinkTapInstanceIDList as $LinkTapInstanceID) {
-                            if (IPS_GetProperty($LinkTapInstanceID, 'taplinkerId') == $taplinkerId) { // todo  InstanceInterface is not available
-                                $instanceID = $LinkTapInstanceID;
-                            }
-                        }
-                        $config_list[] = ["instanceID" => $instanceID,
-                            "name" => $taplinkerName,
-                            "taplinkerId" => $taplinkerId,
-                            "version" => $version,
-                            "create" => [
-                                [
-                                    "moduleID" => "{A3CE72F6-0C41-4B7D-3A3A-05E1C6E94CDE}",
-                                    "configuration" => [
-                                        "name" => $taplinkerName,
-                                        "taplinkerId" => $taplinkerId,
-                                        "gatewayId" => $gatewayId,
-                                    ],
-                                    "location" => $this->SetLocation()
-                                ]
-                            ]
-                        ];
-                    }
-                }
-            }
-        }
-        return $config_list;
-    }
-
-    private function SetLocation()
-    {
-        $category = $this->ReadPropertyInteger("ImportCategoryID");
-        $tree_position[] = IPS_GetName($category);
-        $parent = IPS_GetObject($category)['ParentID'];
-        $tree_position[] = IPS_GetName($parent);
-        do {
-            $parent = IPS_GetObject($parent)['ParentID'];
-            $tree_position[] = IPS_GetName($parent);
-        } while ($parent > 0);
-        // delete last key
-        end($tree_position);
-        $lastkey = key($tree_position);
-        unset($tree_position[$lastkey]);
-        // reverse array
-        $tree_position = array_reverse($tree_position);
-        return $tree_position;
-    }
-
-    /***********************************************************
-     * Configuration Form
-     ***********************************************************/
 
     /**
      * build configuration form
@@ -184,8 +105,8 @@ class LinkTapConfigurator extends IPSModule
      */
     protected function FormHead()
     {
-        $devices = $this->RequestDataFromParent('Get_All_Devices');
-        if ($devices == '[]') {
+        $devices = json_decode($this->Get_Devices_Buffer());
+        if (empty($devices)) {
             $show_config = false;
         } else {
             $show_config = true;
@@ -194,7 +115,7 @@ class LinkTapConfigurator extends IPSModule
         //Check LinkTap connection
         $apikey = $this->GetLinkTapAPIKey();
         if ($apikey == '') {
-            $this->SendDebug('Token', $apikey, 0);
+            $this->SendDebug('API Key', $apikey, 0);
             $visibility_register = true;
         }
 
@@ -240,9 +161,19 @@ class LinkTapConfigurator extends IPSModule
                         'width' => 'auto'
                     ],
                     [
+                        'name' => 'location',
+                        'caption' => 'location',
+                        'width' => '400px'
+                    ],
+                    [
+                        'name' => 'gateway_id',
+                        'caption' => 'gateway id',
+                        'width' => '200px'
+                    ],
+                    [
                         'name' => 'taplinkerId',
                         'caption' => 'taplinker ID',
-                        'width' => '150px'
+                        'width' => '250px'
                     ],
                     [
                         'name' => 'version',
@@ -256,6 +187,126 @@ class LinkTapConfigurator extends IPSModule
         return $form;
     }
 
+    /** Get All Devices
+     * @param  (string $gatewayId)
+     * @return string
+     */
+    protected function Get_Devices_Buffer()
+    {
+        $data = json_encode([
+            'username' => '{USERNAME}',
+            'apiKey' => '{APIKEY}'
+        ]);
+        return $this->RequestDataFromParent('Get_All_Devices_Buffer', $data);
+    }
+
+    public function GetLinkTapAPIKey()
+    {
+        $data = json_encode([
+            'username' => '{USERNAME}'
+        ]);
+        return $this->RequestDataFromParent('apikey', $data);
+    }
+
+    /***********************************************************
+     * Configuration Form
+     ***********************************************************/
+
+    /**
+     * Liefert alle Geräte.
+     *
+     * @return array configlist all devices
+     */
+    private function Get_ListConfiguration()
+    {
+        $config_list = [];
+        $devices = json_decode($this->Get_Devices_Buffer());
+        if (!empty($devices)) {
+            $LinkTapInstanceIDList = IPS_GetInstanceListByModuleID('{A3CE72F6-0C41-4B7D-3A3A-05E1C6E94CDE}'); // LinkTap Devices
+            $this->SendDebug('LinkTap Config', json_encode($devices), 0);
+            $counter = count($devices);
+            if ($counter > 0) {
+                $parent_id = 0;
+                foreach ($devices as $device) {
+                    $parent_id ++;
+                    $name = $device->name;
+                    $this->SendDebug('LinkTap Gateway Name', $name, 0);
+                    $location = $device->location;
+                    $this->SendDebug('LinkTap Gateway Location', $location, 0);
+                    $gatewayId = $device->gatewayId;
+                    $this->SendDebug('LinkTap Gateway ID', $gatewayId, 0);
+                    $status = $device->status;
+                    $this->SendDebug('LinkTap Gateway Status', $status, 0);
+                    $version = $device->version;
+                    $this->SendDebug('LinkTap Gateway Version', $version, 0);
+                    $taplinker = $device->taplinker;
+                    $this->SendDebug('LinkTap TapLinker', json_encode($taplinker), 0);
+                    $config_list[] = ["id" => $parent_id,
+                        "name" => $name,
+                        "location" => $location,
+                        "gateway_id" => $gatewayId,
+                        "taplinkerId" => '',
+                        "version" => $version,
+                    ];
+                    foreach ($taplinker as $taplink) {
+                        $instanceID = 0;
+                        $taplinkerName = $taplink->taplinkerName;
+                        $this->SendDebug('LinkTap taplinker Name', $taplinkerName, 0);
+                        $taplinkerId = $taplink->taplinkerId;
+                        $this->SendDebug('LinkTap taplinker ID', $taplinkerId, 0);
+                        $version = $taplink->version;
+                        $this->SendDebug('LinkTap version', $version, 0);
+                        foreach ($LinkTapInstanceIDList as $LinkTapInstanceID) {
+                            if (IPS_GetProperty($LinkTapInstanceID, 'taplinkerId') == $taplinkerId) {
+                                $this->SendDebug('LinkTap Device exist', 'Instance ID: ' . $LinkTapInstanceID . ', TapLinker ID:' . $taplinkerId, 0);
+                                $instanceID = $LinkTapInstanceID;
+                            }
+                        }
+                        $config_list[] = [
+                            "parent" => $parent_id,
+                            "instanceID" => $instanceID,
+                            "name" => $taplinkerName,
+                            "location" => $location,
+                            "gateway_id" => '',
+                            "taplinkerId" => $taplinkerId,
+                            "version" => $version,
+                            "create" => [
+                                [
+                                    "moduleID" => "{A3CE72F6-0C41-4B7D-3A3A-05E1C6E94CDE}",
+                                    "configuration" => [
+                                        "taplinkerId" => $taplinkerId,
+                                        "gatewayId" => $gatewayId,
+                                    ],
+                                    "location" => $this->SetLocation()
+                                ]
+                            ]
+                        ];
+                    }
+                }
+            }
+        }
+        return $config_list;
+    }
+
+    private function SetLocation()
+    {
+        $category = $this->ReadPropertyInteger("ImportCategoryID");
+        $tree_position[] = IPS_GetName($category);
+        $parent = IPS_GetObject($category)['ParentID'];
+        $tree_position[] = IPS_GetName($parent);
+        do {
+            $parent = IPS_GetObject($parent)['ParentID'];
+            $tree_position[] = IPS_GetName($parent);
+        } while ($parent > 0);
+        // delete last key
+        end($tree_position);
+        $lastkey = key($tree_position);
+        unset($tree_position[$lastkey]);
+        // reverse array
+        $tree_position = array_reverse($tree_position);
+        return $tree_position;
+    }
+
     /**
      * return form actions by token
      * @return array
@@ -266,7 +317,7 @@ class LinkTapConfigurator extends IPSModule
         //Check LinkTap connection
         $apikey = $this->GetLinkTapAPIKey();
         if ($apikey == '') {
-            $this->SendDebug('Token', $apikey, 0);
+            $this->SendDebug('API Key', $apikey, 0);
             $visibility_config = true;
         }
         $form = [
