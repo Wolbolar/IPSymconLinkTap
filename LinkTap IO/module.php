@@ -92,15 +92,11 @@ class LinkTapIO extends IPSModule
 
     public function Update()
     {
-        /*
         $data = json_encode([
-            'username' => $this->ReadPropertyString('user'),
-            'apiKey' => $this->ReadPropertyString('apikey'),
-            'taplinkerId' => $this->ReadAttributeString('taplinkerId')
-        ]);
-        $payload = $this->Query_Watering_Status($data);
-        $this->SendDataToChildren(json_encode(Array("DataID" => "{F1F4C680-F5E4-F0E0-670D-0574FF253233}", "Buffer" => $payload)));
-        */
+        'username' => $this->ReadPropertyString('user'),
+        'apiKey' => $this->ReadPropertyString('apikey')
+    ]);
+        $this->Get_All_Devices_Info($data);
     }
 
     public function UseSimulation(bool $status)
@@ -370,9 +366,12 @@ class LinkTapIO extends IPSModule
             );
             $devices = $data->devices;
             $this->WriteAttributeString('devices', json_encode($devices));
+            $this->SendDataToChildren(json_encode(Array("DataID" => "{F1F4C680-F5E4-F0E0-670D-0574FF253233}", "Buffer" => $devices)));
             return json_encode($devices);
         } else {
-            return $this->PostData($url, $data);
+            $devices = $this->PostData($url, $data);
+            $this->SendDataToChildren(json_encode(Array("DataID" => "{F1F4C680-F5E4-F0E0-670D-0574FF253233}", "Buffer" => $devices)));
+            return $devices;
         }
     }
 
