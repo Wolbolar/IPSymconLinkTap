@@ -154,8 +154,6 @@ class LinkTap extends IPSModule
         $this->SetupVariable(
             'name', $this->Translate('name'), '', $this->_getPosition(), VARIABLETYPE_STRING, false, false
         );
-
-
         $this->SetupVariable(
             'irrigation_state', $this->Translate('irrigation status'), '~Switch', $this->_getPosition(), VARIABLETYPE_BOOLEAN, true, true
         );
@@ -163,7 +161,6 @@ class LinkTap extends IPSModule
         $this->SetupVariable(
             'irrigation_time', $this->Translate('irrigation time'), 'LinkTap.IrrigationTime', $this->_getPosition(), VARIABLETYPE_INTEGER, true, true
         );
-
         $mode_ass = [
             [0, $this->Translate("Instant Mode"), "", -1],
             [1, $this->Translate("Interval Mode"), "", -1],
@@ -204,9 +201,9 @@ class LinkTap extends IPSModule
         $this->SetupVariable(
             'noWater', $this->Translate('no water'), '~Switch', $this->_getPosition(), VARIABLETYPE_BOOLEAN, false, false
         ); // // water cut-off flag (boolean. For G2 only).
-        $this->RegisterProfile('LinkTap.Flowrate', 'Drops', '', ' ml/minute', 0, 1000, 1, 0, VARIABLETYPE_INTEGER);
+        $this->RegisterProfile('LinkTap.Flowrate', 'Drops', '', ' l/min', 0, 10, 0.1, 1, VARIABLETYPE_FLOAT);
         $this->SetupVariable(
-            'vel', $this->Translate('current flow rate'), 'LinkTap.Flowrate', $this->_getPosition(), VARIABLETYPE_INTEGER, false, false
+            'vel', $this->Translate('current flow rate'), 'LinkTap.Flowrate', $this->_getPosition(), VARIABLETYPE_FLOAT, false, false
         ); // current flow rate (unit: ml per minute. For G2 only).
         $this->RegisterProfile('LinkTap.RemainingDuration', 'Drops', '', ' s', 0, 1000, 1, 0, VARIABLETYPE_INTEGER);
         $this->SetupVariable(
@@ -312,7 +309,13 @@ class LinkTap extends IPSModule
                     break;
                 case VARIABLETYPE_FLOAT:
                     $objid = $this->RegisterVariableFloat($ident, $name, $profile, $position);
-                    $value = $this->ReadAttributeFloat($ident);
+                    if($ident == 'vel')
+                    {
+                        $value = $this->ReadAttributeInteger($ident);
+                    }
+                    else{
+                        $value = $this->ReadAttributeFloat($ident);
+                    }
                     break;
                 case VARIABLETYPE_STRING:
                     $objid = $this->RegisterVariableString($ident, $name, $profile, $position);
@@ -362,7 +365,7 @@ class LinkTap extends IPSModule
         $this->WriteEnabledValue('status', VARIABLETYPE_STRING);
         $this->WriteEnabledValue('version', VARIABLETYPE_STRING);
         $this->WriteEnabledValue('taplinkerName', VARIABLETYPE_STRING);
-        $this->WriteEnabledValue('vel', VARIABLETYPE_INTEGER);
+        $this->WriteEnabledValue('vel', VARIABLETYPE_FLOAT);
         $this->WriteEnabledValue('onDuration', VARIABLETYPE_INTEGER);
         $this->WriteEnabledValue('total', VARIABLETYPE_INTEGER);
         $this->WriteEnabledValue('fall', VARIABLETYPE_BOOLEAN);
@@ -416,7 +419,17 @@ class LinkTap extends IPSModule
                     $this->SetVariableValue($ident, $value);
                     break;
                 case VARIABLETYPE_FLOAT:
-                    $value = $this->ReadAttributeFloat($ident);
+                    if($ident == 'vel')
+                    {
+                        $value = $this->ReadAttributeInteger($ident);
+                        if($value != 0)
+                        {
+                            $value = $value / 1000;
+                        }
+                    }
+                    else{
+                        $value = $this->ReadAttributeFloat($ident);
+                    }
                     $this->SendDebug('SetValue float', 'ident: ' . $ident . ' value: ' . $value, 0);
                     $this->SetVariableValue($ident, $value);
                     break;
@@ -463,6 +476,18 @@ class LinkTap extends IPSModule
                     $this->ActivateMonthMode();
                     break;
             }
+        }
+        if ($Ident === 'eco') {
+            $this->WriteAttributeBoolean('eco', $Value);
+            $this->SetValue('eco', $Value);
+        }
+        if ($Ident === 'ecoOn') {
+            $this->WriteAttributeInteger('ecoOn', $Value);
+            $this->SetValue('ecoOn', $Value);
+        }
+        if ($Ident === 'ecoOff') {
+            $this->WriteAttributeInteger('ecoOff', $Value);
+            $this->SetValue('ecoOff', $Value);
         }
     }
 
@@ -670,6 +695,10 @@ class LinkTap extends IPSModule
     public function Watering_On()
     {
         $duration = $this->ReadAttributeInteger('irrigation_time');
+        $ecoOn = $this->ReadAttributeInteger('ecoOn');
+        $ecoOff = $this->ReadAttributeInteger('ecoOff');
+        $eco = $this->ReadAttributeBoolean('eco');
+
         $data = json_encode([
             'username' => '{USERNAME}',
             'apiKey' => '{APIKEY}',
@@ -677,9 +706,35 @@ class LinkTap extends IPSModule
             'taplinkerId' => $this->ReadPropertyString('taplinkerId'),
             'action' => true,
             'duration' => $duration,
-            'eco' => true,
-            'ecoOn' => 1,
-            'ecoOff' => 2
+            'eco' => $eco,
+            'ecoOn' => $ecoOn,
+            'ecoOff' => $ecoOff
+        ]);
+        $payload = $this->SendCommand('Watering_On', $data);
+        $this->CheckResponse('irrigation_state', $payload, true);
+        return $payload;
+    }
+
+    /** Watering On Extended
+     * duration The watering duration (unit is minute) the range is from 1 minute to 1439 minutes.
+     * @param int $duration
+     * @param bool $eco
+     * @param int $ecoOn
+     * @param int $ecoOff
+     * @return string
+     */
+    public function Watering_On_Extended(int $duration, bool $eco, int $ecoOn, int $ecoOff)
+    {
+        $data = json_encode([
+            'username' => '{USERNAME}',
+            'apiKey' => '{APIKEY}',
+            'gatewayId' => $this->ReadPropertyString('gatewayId'),
+            'taplinkerId' => $this->ReadPropertyString('taplinkerId'),
+            'action' => true,
+            'duration' => $duration,
+            'eco' => $eco,
+            'ecoOn' => $ecoOn,
+            'ecoOff' => $ecoOff
         ]);
         $payload = $this->SendCommand('Watering_On', $data);
         $this->CheckResponse('irrigation_state', $payload, true);
