@@ -59,9 +59,9 @@ Nun öffnen wir die Konfigurator Instanz im Objekt Baum zu finden unter _Konfigu
 
 ### c. Einrichtung des Konfigurator-Moduls
 
-Jetzt wechseln wir im Objektbaum in die Instanz _**Ondilo**_ (Typ Ondilo Konfigurator) zu finden unter _Konfigurator Instanzen_.
+Jetzt wechseln wir im Objektbaum in die Instanz _**LinkTap**_ (Typ LinkTap Konfigurator) zu finden unter _Konfigurator Instanzen_.
 
-Hier werden alle Geräte, die bei Ondilo unter dem Account registiert sind und von der Ondilo API unterstützt werden aufgeführt.
+Hier werden alle Geräte, die bei LinkTap unter dem Account registiert sind und von der LinkTap API unterstützt werden aufgeführt.
 
 Ein einzelnes Gerät kann man durch markieren auf das Gerät und ein Druck auf den Button _Erstellen_ erzeugen. Der Konfigurator legt dann eine Geräte Instanz an.
 
@@ -73,7 +73,7 @@ Eine manuelle Einrichtung eines Gerätemoduls ist nicht erforderlich, das erfolg
 
 ### a. Webfront Ansicht
 
-![Webfront](img/webfront_ico.png?raw=true "Webfront")  
+![Webfront](img/webfront_linktap.png?raw=true "Webfront")  
 
 ### b. Methoden
 
