@@ -22,7 +22,7 @@ Read data from a LinkTap devices and control the device via LinkTap API.
 ## 2. Requirements
 
  - IPS 5.2
- - Ondilo ICO account
+ - LinkTap account
  - [LinkTap](https://www.link-tap.com/)
 
 ## 3. Installation
@@ -55,9 +55,9 @@ First, when installing the module, you are asked whether you want to create a co
 
 ### c. Setup of the configurator module
 
-Now we switch to the instance _**Ondilo**_ (type Ondilo Configurator) in the object tree under _Configurator Instances_.
+Now we switch to the instance _**LinkTap**_ (type LinkTap Configurator) in the object tree under _Configurator Instances_.
 
-All devices that are registered with Ondilo under the account and supported by the Ondilo API are listed here.
+All devices that are registered with LinkTap under the account and supported by the LinkTap API are listed here.
 
 A single device can be created by marking the device and pressing the _Create_ button. The configurator then creates a device instance.
 
@@ -69,7 +69,7 @@ Manual configuration of a device module is not necessary, this is done using the
 
 ### a. Webfront View
 
-![Webfront](img/webfront_ico.png?raw=true "Webfront")  
+![Webfront](img/webfront_linktap.png?raw=true "Webfront")  
 
 ### b. Methods
 
