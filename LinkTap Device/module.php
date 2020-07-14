@@ -637,12 +637,29 @@ class LinkTap extends IPSModule
                             if(isset($plan->slot))
                             {
                                 $slot = $plan->slot; // current watering plan
-                                $hour = $slot->{0}->H; // 'H' represents hour
-                                $this->WriteAttributeInteger('H', $hour);
-                                $minute = $slot->{0}->M; // 'M' represents minute
-                                $this->WriteAttributeInteger('M', $minute);
-                                $duration = $slot->{0}->D; // 'D' represents duration
-                                $this->WriteAttributeInteger('D', $duration);
+                                foreach($slot as $watering_plan)
+                                {
+                                    if(property_exists($slot, 'H'))
+                                    {
+                                        $hour = $watering_plan->H; // 'H' represents hour
+                                        $this->SendDebug('Waterplan hour', $hour, 0);
+                                        // $this->WriteAttributeInteger('H', $hour);
+                                    }
+
+                                    if(property_exists($slot, 'M'))
+                                    {
+                                        $minute = $watering_plan->M; // 'M' represents minute
+                                        $this->SendDebug('Waterplan minute', $minute, 0);
+                                        // $this->WriteAttributeInteger('M', $minute);
+                                    }
+
+                                    if(property_exists($slot, 'D'))
+                                    {
+                                        $duration = $watering_plan->D; // 'D' represents duration
+                                        $this->SendDebug('Waterplan duration', $duration, 0);
+                                        // $this->WriteAttributeInteger('D', $duration);
+                                    }
+                                }
                             }
                             $watering = $taplink->watering;
                             $this->WriteAttributeInteger('watering', $watering);
