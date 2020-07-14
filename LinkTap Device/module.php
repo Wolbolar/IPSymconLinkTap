@@ -66,7 +66,7 @@ class LinkTap extends IPSModule
         $this->RegisterAttributeBoolean('D_enabled', false);
         $this->RegisterAttributeInteger('watering', 0);
         $this->RegisterAttributeBoolean('watering_enabled', false);
-        $this->RegisterAttributeInteger('vel', 0); // current flow rate (unit: ml per minute. For G2 only).
+        $this->RegisterAttributeFloat('vel', 0); // current flow rate (unit: ml per minute. For G2 only).
         $this->RegisterAttributeBoolean('vel_enabled', false);
         $this->RegisterAttributeBoolean('fall', false); // fall incident flag (boolean. For G2 only).
         $this->RegisterAttributeBoolean('fall_enabled', false);
@@ -152,7 +152,7 @@ class LinkTap extends IPSModule
 
 
         $this->SetupVariable(
-            'name', $this->Translate('name'), '', $this->_getPosition(), VARIABLETYPE_STRING, false, false
+            'name', $this->Translate('gateway name'), '', $this->_getPosition(), VARIABLETYPE_STRING, false, false
         );
         $this->SetupVariable(
             'irrigation_state', $this->Translate('irrigation status'), '~Switch', $this->_getPosition(), VARIABLETYPE_BOOLEAN, true, true
@@ -309,13 +309,7 @@ class LinkTap extends IPSModule
                     break;
                 case VARIABLETYPE_FLOAT:
                     $objid = $this->RegisterVariableFloat($ident, $name, $profile, $position);
-                    if($ident == 'vel')
-                    {
-                        $value = $this->ReadAttributeInteger($ident);
-                    }
-                    else{
-                        $value = $this->ReadAttributeFloat($ident);
-                    }
+                    $value = $this->ReadAttributeFloat($ident);
                     break;
                 case VARIABLETYPE_STRING:
                     $objid = $this->RegisterVariableString($ident, $name, $profile, $position);
@@ -356,6 +350,7 @@ class LinkTap extends IPSModule
     {
         $id = $this->ReadPropertyString('gatewayId');
         $this->SendDebug('LinkTap Write Values', 'Gateway ID ' . $id, 0);
+        $this->WriteEnabledValue('name', VARIABLETYPE_STRING);
         $this->WriteEnabledValue('irrigation_state', VARIABLETYPE_BOOLEAN, true);
         $this->WriteEnabledValue('irrigation_time', VARIABLETYPE_INTEGER, true);
         $this->WriteEnabledValue('workMode', VARIABLETYPE_INTEGER, true);
@@ -421,7 +416,7 @@ class LinkTap extends IPSModule
                 case VARIABLETYPE_FLOAT:
                     if($ident == 'vel')
                     {
-                        $value = $this->ReadAttributeInteger($ident);
+                        $value = $this->ReadAttributeFloat($ident);
                         if($value != 0)
                         {
                             $value = $value / 1000;
@@ -551,6 +546,7 @@ class LinkTap extends IPSModule
         $this->SendDebug('Receive Data', $JSONString, 0);
         $payload = $data->Buffer;
         $this->CheckResponse('get_all_devices', $payload);
+        $this->WriteValues();
     }
 
     private function CheckResponse($ident, $payload, $value = NULL)
@@ -568,6 +564,7 @@ class LinkTap extends IPSModule
 
                     $name = $device->name;
                     $this->SendDebug('LinkTap Device Name', $name, 0);
+                    $this->WriteAttributeString('name', $name);
                     $location = $device->location;
                     $this->SendDebug('LinkTap Device Location', $location, 0);
                     $gatewayId = $device->gatewayId;
@@ -649,8 +646,8 @@ class LinkTap extends IPSModule
                             }
                             $watering = $taplink->watering;
                             $this->WriteAttributeInteger('watering', $watering);
-                            $vel = $taplink->vel; // latest flow rate (unit: ml per minute. For G2 only)
-                            $this->WriteAttributeInteger('vel', $vel);
+                            $vel = floatval($taplink->vel); // latest flow rate (unit: ml per minute. For G2 only)
+                            $this->WriteAttributeFloat('vel', $vel);
                             $fall = $taplink->fall; // fall incident flag (boolean. For G2 only)
                             $this->WriteAttributeBoolean('fall', $fall);
                             $valveBroken = $taplink->valveBroken; // valve failed to open flag (boolean. For G2 only)

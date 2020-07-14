@@ -3,6 +3,7 @@
     "de": {
       "This device can only created by the LinkTap configurator, please use the LinkTap configurator for creating LinkTap devices.": "Das Gerät kann nur durch ein LinkTap Konfigurator angelegt werden, bitte den LinkTap Konfigurator benutzten um die LinkTap Geräte Instanz zu erzeugen.",
       "name": "Name",
+      "gateway name": "Gateway Name",
       "Read Information": "Information auslesen",
       "Instant Mode": "Sofortmodus",
       "Interval Mode": "Interval Modus",
@@ -23,13 +24,14 @@
       "current flow rate": "aktuelle Durchflussrate",
       "remaining watering duration": "verbleibende Bewässerungszeit",
       "total": "Gesamt",
-      "fall": "fall",
+      "fall": "Fall",
       "valve broken": "Ventil kaputt",
       "no water": "kein Wasser"
     },
     "de_AT": {
       "This device can only created by the LinkTap configurator, please use the LinkTap configurator for creating LinkTap devices.": "Das Gerät kann nur durch ein LinkTap Konfigurator angelegt werden, bitte den LinkTap Konfigurator benutzten um die LinkTap Geräte Instanz zu erzeugen.",
       "name": "Name",
+      "gateway name": "Gateway Name",
       "Read Information": "Information auslesen",
       "Instant Mode": "Sofortmodus",
       "Interval Mode": "Interval Modus",
@@ -50,13 +52,14 @@
       "current flow rate": "aktuelle Durchflussrate",
       "remaining watering duration": "verbleibende Bewässerungszeit",
       "total": "Gesamt",
-      "fall": "fall",
+      "fall": "Fall",
       "valve broken": "Ventil kaputt",
       "no water": "kein Wasser"
     },
     "de_CH": {
       "This device can only created by the LinkTap configurator, please use the LinkTap configurator for creating LinkTap devices.": "Das Gerät kann nur durch ein LinkTap Konfigurator angelegt werden, bitte den LinkTap Konfigurator benutzten um die LinkTap Geräte Instanz zu erzeugen.",
       "name": "Name",
+      "gateway name": "Gateway Name",
       "Read Information": "Information auslesen",
       "Instant Mode": "Sofortmodus",
       "Interval Mode": "Interval Modus",
@@ -77,7 +80,7 @@
       "current flow rate": "aktuelle Durchflussrate",
       "remaining watering duration": "verbleibende Bewässerungszeit",
       "total": "Gesamt",
-      "fall": "Gerät abgefallen",
+      "fall": "Fall",
       "valve broken": "Ventil kaputt",
       "no water": "kein Wasser"
     }
