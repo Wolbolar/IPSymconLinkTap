@@ -2,11 +2,9 @@
   "translations": {
     "de": {
       "Register": "Registrieren",
-      "Gardena: Please register with your Gardena account!": "Bitte mit dem Gardena Benutzerkonto registrieren!",
+      "LinkTap: Please switch to the I/O instance and register with your LinkTap account to get an API key!": "Bitte in die IO Instanz wechseln und dort mit dem LinkTap API Key registrieren!",
       "Status: Symcon Connect is OK!": "Status: Symcon Connect ist OK!",
       "Error: Symcon Connect is not active!": "Error: Symcon Connect is nicht aktiv!",
-      "category for Gardena devices": "Kategorie für Gardena Geräte",
-      "category Gardena devices": "Kategorie Gardena Geräte",
       "name": "Name",
       "serial": "Seriennummer",
       "rf link state": "RF Link Status",
@@ -24,7 +22,8 @@
       "taplinker ID": "TapLinker ID",
       "version": "Version",
       "location": "Ort",
-      "gateway id": "Gateway ID"
+      "gateway id": "Gateway ID",
+      "Read LinkTap configuration:": "LinkTap Konfiguration auslesen:"
     }
   }
 }
