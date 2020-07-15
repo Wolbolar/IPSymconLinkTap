@@ -598,7 +598,8 @@ class LinkTapIO extends IPSModule
                 'name' => 'UpdateInterval',
                 'visible' => false,
                 'type' => 'IntervalBox',
-                'caption' => 'minutes'
+                'suffix' => 'minutes',
+                'caption' => 'Update interval'
             ]
         ];
         return $form;

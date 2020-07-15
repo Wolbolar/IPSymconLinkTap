@@ -2,6 +2,7 @@
   "translations": {
     "de": {
       "Update interval in minutes (minimum 15 minutes):": "Aktualisierungsinterval in Minuten (minimum 15 Minuten):",
+      "Update interval": "Aktualisierungsinterval",
       "seconds": "Sekunden",
       "minutes": "Minuten",
       "LinkTap username and password:": "LinkTap Benutzername und Passwort:",
